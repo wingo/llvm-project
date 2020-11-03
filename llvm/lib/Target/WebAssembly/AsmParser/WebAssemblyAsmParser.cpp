@@ -581,7 +581,6 @@ public:
               WebAssemblyOperand::Integer, Id.getLoc(), Id.getEndLoc(),
               WebAssemblyOperand::IntOp{static_cast<int64_t>(HeapType)}));
           Parser.Lex();
-          ExpectHeapType = false;
         } else {
           // Assume this identifier is a label.
           const MCExpr *Val;
