@@ -93,6 +93,14 @@ MCSymbol *WebAssemblyMCInstLower::GetExternalSymbolSymbol(
     return WasmSym;
   }
 
+  if (strcmp(Name, "__indirect_function_table") == 0) {
+    WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
+    WasmSym->setTableType(wasm::ValType::FUNCREF);
+    // The indirect function table is synthesized by the linker.
+    WasmSym->setUndefined();
+    return WasmSym;
+  }
+
   SmallVector<wasm::ValType, 4> Returns;
   SmallVector<wasm::ValType, 4> Params;
   if (strcmp(Name, "__cpp_exception") == 0) {
@@ -158,6 +166,8 @@ MCOperand WebAssemblyMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
       report_fatal_error("Global indexes with offsets not supported");
     if (WasmSym->isEvent())
       report_fatal_error("Event indexes with offsets not supported");
+    if (WasmSym->isTable())
+      report_fatal_error("Table indexes with offsets not supported");
 
     Expr = MCBinaryExpr::createAdd(
         Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
@@ -256,7 +266,7 @@ void WebAssemblyMCInstLower::lower(const MachineInstr *MI,
 
           // return_call_indirect instructions have the return type of the
           // caller
-          if (MI->getOpcode() == WebAssembly::RET_CALL_INDIRECT)
+          if (WebAssembly::isRetCallIndirect(MI->getOpcode()))
             getFunctionReturns(MI, Returns);
 
           MCOp = lowerTypeIndexOperand(std::move(Returns), std::move(Params));

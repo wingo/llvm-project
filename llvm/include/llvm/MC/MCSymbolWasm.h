@@ -111,8 +111,9 @@ public:
   }
   void setGlobalType(wasm::WasmGlobalType GT) { GlobalType = GT; }
 
+  bool hasTableType() const { return TableType.hasValue(); }
   const wasm::ValType &getTableType() const {
-    assert(TableType.hasValue());
+    assert(hasTableType());
     return TableType.getValue();
   }
   void setTableType(wasm::ValType TT) { TableType = TT; }

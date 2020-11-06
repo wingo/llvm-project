@@ -26,6 +26,7 @@
 #include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -853,10 +854,14 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
   }
 
   unsigned CalleeReg = 0;
+  bool IssueTableNumberRelocation = false;
   if (!IsDirect) {
     CalleeReg = getRegForValue(Call->getCalledOperand());
     if (!CalleeReg)
       return false;
+    IssueTableNumberRelocation = Subtarget->hasReferenceTypes();
+    if (IssueTableNumberRelocation)
+      Opc = WebAssembly::CALL_INDIRECT_TABLE;
   }
 
   auto MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(Opc));
@@ -868,6 +873,11 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
     MIB.addGlobalAddress(Func);
   } else {
     // Add placeholders for the type index and immediate flags
+    if (IssueTableNumberRelocation) {
+      auto &Context = MF->getMMI().getContext();
+      auto BaseName = MF->createExternalSymbolName("__indirect_function_table");
+      MIB.addSym(Context.getOrCreateSymbol(BaseName));
+    }
     MIB.addImm(0);
     MIB.addImm(0);
   }

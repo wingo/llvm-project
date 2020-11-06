@@ -490,6 +490,7 @@ public:
     bool ExpectBlockType = false;
     bool ExpectFuncType = false;
     bool ExpectHeapType = false;
+    Optional<wasm::WasmSymbolType> SymbolType;
     if (Name == "block") {
       push(Block);
       ExpectBlockType = true;
@@ -529,6 +530,7 @@ public:
         return true;
     } else if (Name == "call_indirect" || Name == "return_call_indirect") {
       ExpectFuncType = true;
+      SymbolType = wasm::WASM_SYMBOL_TYPE_TABLE;
     } else if (Name == "ref.null") {
       ExpectHeapType = true;
     }
@@ -556,6 +558,16 @@ public:
       Operands.push_back(std::make_unique<WebAssemblyOperand>(
           WebAssemblyOperand::Symbol, Loc.getLoc(), Loc.getEndLoc(),
           WebAssemblyOperand::SymOp{Expr}));
+
+      // Allow additional operands after the signature, notably for
+      // call_indirect against a named table.
+      if (Lexer.isNot(AsmToken::EndOfStatement)) {
+        if (expect(AsmToken::Comma, ","))
+          return true;
+        if (Lexer.is(AsmToken::EndOfStatement)) {
+          return error("Unexpected trailing comma");
+        }
+      }
     }
 
     while (Lexer.isNot(AsmToken::EndOfStatement)) {
@@ -582,7 +594,22 @@ public:
               WebAssemblyOperand::IntOp{static_cast<int64_t>(HeapType)}));
           Parser.Lex();
         } else {
-          // Assume this identifier is a label.
+          // If we are expecting a symbol of a specific type, check the type of
+          // any existing symbol.  In the case the symbol doesn't exist yet,
+          // define it with the type that we are expecting.
+          if (SymbolType) {
+            auto &Ctx = getStreamer().getContext();
+            MCSymbol *Sym = Ctx.lookupSymbol(Id.getString());
+            if (Sym) {
+              auto *WasmSym = cast<MCSymbolWasm>(Sym);
+              if (WasmSym->getType() != SymbolType.getValue())
+                return error("Symbol defined with incompatible types: ", Id);
+            } else {
+              Sym = Ctx.getOrCreateSymbol(Id.getString());
+              auto *WasmSym = cast<MCSymbolWasm>(Sym);
+              WasmSym->setType(SymbolType.getValue());
+            }
+          }
           const MCExpr *Val;
           SMLoc End;
           if (Parser.parseExpression(Val, End))

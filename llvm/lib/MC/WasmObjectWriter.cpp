@@ -40,8 +40,8 @@ using namespace llvm;
 
 namespace {
 
-// Went we ceate the indirect function table we start at 1, so that there is
-// and emtpy slot at 0 and therefore calling a null function pointer will trap.
+// When we create the indirect function table we start at 1, so that there is
+// and empty slot at 0 and therefore calling a null function pointer will trap.
 static const uint32_t InitialTableOffset = 1;
 
 // For patching purposes, we need to remember where each section starts, both
@@ -218,9 +218,7 @@ class WasmObjectWriter : public MCObjectWriter {
   SmallVector<WasmDataSegment, 4> DataSegments;
   unsigned NumFunctionImports = 0;
   unsigned NumGlobalImports = 0;
-  // NumTableImports is initialized to 1 to account for the hardcoded import of
-  // __indirect_function_table
-  unsigned NumTableImports = 1;
+  unsigned NumTableImports = 0;
   unsigned NumEventImports = 0;
   uint32_t SectionCount = 0;
 
@@ -270,7 +268,7 @@ private:
     SectionFunctions.clear();
     NumFunctionImports = 0;
     NumGlobalImports = 0;
-    NumTableImports = 1;
+    NumTableImports = 0;
     MCObjectWriter::reset();
   }
 
@@ -1196,16 +1194,6 @@ void WasmObjectWriter::prepareImports(
                                      : wasm::WASM_LIMITS_FLAG_NONE;
   Imports.push_back(MemImport);
 
-  // For now, always emit the table section, since indirect calls are not
-  // valid without it. In the future, we could perhaps be more clever and omit
-  // it if there are no indirect calls.
-  wasm::WasmImport TableImport;
-  TableImport.Module = "env";
-  TableImport.Field = "__indirect_function_table";
-  TableImport.Kind = wasm::WASM_EXTERNAL_TABLE;
-  TableImport.Table.ElemType = wasm::WASM_TYPE_FUNCREF;
-  Imports.push_back(TableImport);
-
   // Populate SignatureIndices, and Imports and WasmIndices for undefined
   // symbols.  This must be done before populating WasmIndices for defined
   // symbols.
@@ -1264,6 +1252,26 @@ void WasmObjectWriter::prepareImports(
         Imports.push_back(Import);
         assert(WasmIndices.count(&WS) == 0);
         WasmIndices[&WS] = NumEventImports++;
+      } else if (WS.isTable()) {
+        if (WS.isWeak())
+          report_fatal_error("undefined table symbol cannot be weak");
+
+        wasm::WasmImport Import;
+        Import.Module = WS.getImportModule();
+        Import.Field = WS.getImportName();
+        Import.Kind = wasm::WASM_EXTERNAL_TABLE;
+        Import.Table.Index = NumTableImports;
+        // FIXME: We should probably use some other mechanism to attach types
+        // to forward-declared tables.  This case handles a forward-declared
+        // __indirect_function_table.
+        wasm::ValType ElemType =
+            WS.hasTableType() ? WS.getTableType() : wasm::ValType::FUNCREF;
+        Import.Table.ElemType = uint8_t(ElemType);
+        // FIXME: ?
+        Import.Table.Limits = {wasm::WASM_LIMITS_FLAG_NONE, 0, 0};
+        Imports.push_back(Import);
+        assert(WasmIndices.count(&WS) == 0);
+        WasmIndices[&WS] = NumTableImports++;
       }
     }
   }

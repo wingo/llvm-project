@@ -431,8 +431,13 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
   assert(CallResults.getOpcode() == WebAssembly::CALL_RESULTS ||
          CallResults.getOpcode() == WebAssembly::RET_CALL_RESULTS);
 
+  MachineFunction &MF = *BB->getParent();
   bool IsIndirect = CallParams.getOperand(0).isReg();
   bool IsRetCall = CallResults.getOpcode() == WebAssembly::RET_CALL_RESULTS;
+  bool IndirectCallNeedsTruncate =
+      IsIndirect && MF.getSubtarget<WebAssemblySubtarget>().hasAddr64();
+  bool IndirectCallNeedsReloc =
+      IsIndirect && MF.getSubtarget<WebAssemblySubtarget>().hasReferenceTypes();
 
   unsigned CallOp;
   if (IsIndirect && IsRetCall) {
@@ -445,14 +450,26 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
     CallOp = WebAssembly::CALL;
   }
 
-  MachineFunction &MF = *BB->getParent();
+  if (IndirectCallNeedsReloc) {
+    switch (CallOp) {
+    case WebAssembly::CALL_INDIRECT:
+      CallOp = WebAssembly::CALL_INDIRECT_TABLE;
+      break;
+    case WebAssembly::RET_CALL_INDIRECT:
+      CallOp = WebAssembly::RET_CALL_INDIRECT_TABLE;
+      break;
+    default:
+      llvm_unreachable("unhandled indirect call kind");
+    }
+  }
+
   const MCInstrDesc &MCID = TII.get(CallOp);
   MachineInstrBuilder MIB(MF, MF.CreateMachineInstr(MCID, DL));
 
   // See if we must truncate the function pointer.
   // CALL_INDIRECT takes an i32, but in wasm64 we represent function pointers
   // as 64-bit for uniformity with other pointer types.
-  if (IsIndirect && MF.getSubtarget<WebAssemblySubtarget>().hasAddr64()) {
+  if (IndirectCallNeedsTruncate) {
     Register Reg32 =
         MF.getRegInfo().createVirtualRegister(&WebAssembly::I32RegClass);
     auto &FnPtr = CallParams.getOperand(0);
@@ -471,6 +488,13 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
 
   for (auto Def : CallResults.defs())
     MIB.add(Def);
+
+  // Add a reference to the indirect function table
+  if (IndirectCallNeedsReloc) {
+    auto BaseName = MF.createExternalSymbolName("__indirect_function_table");
+    auto Sym = MF.getContext().getOrCreateSymbol(BaseName);
+    MIB.addSym(Sym);
+  }
 
   // Add placeholders for the type index and immediate flags
   if (IsIndirect) {
