@@ -1,5 +1,5 @@
-# RUN: llvm-mc -triple=wasm32-unknown-unknown -mattr=+reference-types < %s | FileCheck %s
-# not yet: llvm-mc -triple=wasm32-unknown-unknown -filetype=obj -mattr=+reference-types -o %t.o < %s | obj2yaml | FileCheck -check-prefix=CHECK-OBJ %s
+# RUN: llvm-mc -triple=wasm32-unknown-unknown < %s | FileCheck %s
+# not yet: llvm-mc -triple=wasm32-unknown-unknown -filetype=obj -o %t.o < %s | obj2yaml | FileCheck -check-prefix=CHECK-OBJ %s
 
 test0:
     .functype   test0 () -> ()

@@ -767,7 +767,8 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
     return false;
 
   FunctionType *FuncTy = Call->getFunctionType();
-  unsigned Opc = IsDirect ? WebAssembly::CALL : WebAssembly::CALL_INDIRECT;
+  unsigned Opc =
+      IsDirect ? WebAssembly::CALL : WebAssembly::CALL_INDIRECT_TABLE;
   bool IsVoid = FuncTy->getReturnType()->isVoidTy();
   unsigned ResultReg;
   if (!IsVoid) {
@@ -854,14 +855,10 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
   }
 
   unsigned CalleeReg = 0;
-  bool IssueTableNumberRelocation = false;
   if (!IsDirect) {
     CalleeReg = getRegForValue(Call->getCalledOperand());
     if (!CalleeReg)
       return false;
-    IssueTableNumberRelocation = Subtarget->hasReferenceTypes();
-    if (IssueTableNumberRelocation)
-      Opc = WebAssembly::CALL_INDIRECT_TABLE;
   }
 
   auto MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(Opc));
@@ -872,12 +869,11 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
   if (IsDirect) {
     MIB.addGlobalAddress(Func);
   } else {
-    // Add placeholders for the type index and immediate flags
-    if (IssueTableNumberRelocation) {
-      auto &Context = MF->getMMI().getContext();
-      auto BaseName = MF->createExternalSymbolName("__indirect_function_table");
-      MIB.addSym(Context.getOrCreateSymbol(BaseName));
-    }
+    // Add a reference to the indirect function table, and placeholders for the
+    // type index and immediate flags.
+    auto &Context = MF->getMMI().getContext();
+    auto BaseName = MF->createExternalSymbolName("__indirect_function_table");
+    MIB.addSym(Context.getOrCreateSymbol(BaseName));
     MIB.addImm(0);
     MIB.addImm(0);
   }

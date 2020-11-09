@@ -67,8 +67,7 @@ defm CALL_INDIRECT_TABLE :
     (outs),
     (ins TypeIndex:$type, table32_op:$table, i32imm:$flags),
     [],
-    "call_indirect\t$table", "call_indirect\t$type, $table", 0x11>,
-  Requires<[HasReferenceTypes]>;
+    "call_indirect\t$table", "call_indirect\t$type, $table", 0x11>;
 
 let isReturn = 1, isTerminator = 1, hasCtrlDep = 1, isBarrier = 1 in
 defm RET_CALL :
@@ -91,6 +90,6 @@ defm RET_CALL_INDIRECT_TABLE :
     (outs), (ins TypeIndex:$type, table32_op:$table, i32imm:$flags), [],
     "return_call_indirect\t$table", "return_call_indirect\t$type, $table",
     0x13>,
-  Requires<[HasTailCall, HasReferenceTypes]>;
+  Requires<[HasTailCall]>;
 
 } // Uses = [SP32,SP64], isCall = 1
