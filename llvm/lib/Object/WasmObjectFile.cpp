@@ -484,9 +484,11 @@ Error WasmObjectFile::parseLinkingSectionSymtab(ReadContext &Ctx) {
   std::vector<wasm::WasmImport *> ImportedGlobals;
   std::vector<wasm::WasmImport *> ImportedFunctions;
   std::vector<wasm::WasmImport *> ImportedEvents;
+  std::vector<wasm::WasmImport *> ImportedTables;
   ImportedGlobals.reserve(Imports.size());
   ImportedFunctions.reserve(Imports.size());
   ImportedEvents.reserve(Imports.size());
+  ImportedTables.reserve(Imports.size());
   for (auto &I : Imports) {
     if (I.Kind == wasm::WASM_EXTERNAL_FUNCTION)
       ImportedFunctions.emplace_back(&I);
@@ -494,6 +496,8 @@ Error WasmObjectFile::parseLinkingSectionSymtab(ReadContext &Ctx) {
       ImportedGlobals.emplace_back(&I);
     else if (I.Kind == wasm::WASM_EXTERNAL_EVENT)
       ImportedEvents.emplace_back(&I);
+    else if (I.Kind == wasm::WASM_EXTERNAL_TABLE)
+      ImportedTables.emplace_back(&I);
   }
 
   while (Count--) {
@@ -562,7 +566,6 @@ Error WasmObjectFile::parseLinkingSectionSymtab(ReadContext &Ctx) {
           Info.Name = Import.Field;
         }
         GlobalType = &Import.Global;
-        Info.ImportName = Import.Field;
         if (!Import.Module.empty()) {
           Info.ImportModule = Import.Module;
         }
@@ -585,8 +588,18 @@ Error WasmObjectFile::parseLinkingSectionSymtab(ReadContext &Ctx) {
         wasm::WasmTable &Table = Tables[TableIndex];
         TableType = Table.ElemType;
       } else {
-        return make_error<GenericBinaryError>("undefined table symbol",
-                                              object_error::parse_failed);
+        wasm::WasmImport &Import = *ImportedTables[Info.ElementIndex];
+        if ((Info.Flags & wasm::WASM_SYMBOL_EXPLICIT_NAME) != 0) {
+          Info.Name = readString(Ctx);
+          Info.ImportName = Import.Field;
+        } else {
+          Info.Name = Import.Field;
+        }
+        TableType = Import.Table.ElemType;
+        // FIXME: Parse limits here too.
+        if (!Import.Module.empty()) {
+          Info.ImportModule = Import.Module;
+        }
       }
       break;
 
