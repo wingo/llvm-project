@@ -436,9 +436,9 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
 
   unsigned CallOp;
   if (IsIndirect && IsRetCall) {
-    CallOp = WebAssembly::RET_CALL_INDIRECT_TABLE;
+    CallOp = WebAssembly::RET_CALL_INDIRECT;
   } else if (IsIndirect) {
-    CallOp = WebAssembly::CALL_INDIRECT_TABLE;
+    CallOp = WebAssembly::CALL_INDIRECT;
   } else if (IsRetCall) {
     CallOp = WebAssembly::RET_CALL;
   } else {
@@ -472,13 +472,17 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
   for (auto Def : CallResults.defs())
     MIB.add(Def);
 
-  // Add a reference to the indirect function table, and placeholders for the
-  // type index and immediate flags.
   if (IsIndirect) {
+    // Placehoder for the type index.
+    MIB.addImm(0);
+    // The table into which this call_indirect indexes.
     auto BaseName = MF.createExternalSymbolName("__indirect_function_table");
     auto Sym = MF.getContext().getOrCreateSymbol(BaseName);
-    MIB.addSym(Sym);
-    MIB.addImm(0);
+    auto WasmSym = static_cast<MCSymbolWasm *>(Sym);
+    WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
+    WasmSym->setTableType(wasm::ValType::FUNCREF);
+    MIB.addSym(WasmSym);
+    // Placeholder for immediate flags.
     MIB.addImm(0);
   }
 

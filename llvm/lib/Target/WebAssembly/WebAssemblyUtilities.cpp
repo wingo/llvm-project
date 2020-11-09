@@ -92,11 +92,6 @@ const MachineOperand &WebAssembly::getCalleeOp(const MachineInstr &MI) {
   case WebAssembly::RET_CALL_INDIRECT:
   case WebAssembly::RET_CALL_INDIRECT_S:
     return MI.getOperand(MI.getNumOperands() - 1);
-  case WebAssembly::CALL_INDIRECT_TABLE:
-  case WebAssembly::CALL_INDIRECT_TABLE_S:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE_S:
-    return MI.getOperand(MI.getNumOperands() - 2);
   default:
     llvm_unreachable("Not a call instruction");
   }

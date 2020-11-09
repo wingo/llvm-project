@@ -34,7 +34,7 @@ entry:
 ; CHECK-NEXT: i32.const 1
 ; CHECK-NEXT: local.get 0
 ; CHECK-NEXT: i32.wrap_i64
-; CHECK-NEXT: call_indirect (i32) -> ()
+; CHECK-NEXT: call_indirect (i32) -> (), __indirect_function_table
 
 ; CHECK:      .functype test () -> ()
 ; CHECK-NEXT: i64.const bar
@@ -50,7 +50,7 @@ entry:
 ; YAML:      - Type:   CODE
 ; YAML:      - Type:   R_WASM_TABLE_INDEX_SLEB64
 ; YAML-NEXT:   Index:  0
-; YAML-NEXT:   Offset: 0x00000016
+; YAML-NEXT:   Offset: 0x0000001B
 
 ; YAML:      - Type:   DATA
 ; YAML:      - Type:   R_WASM_TABLE_INDEX_I64

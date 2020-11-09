@@ -767,8 +767,7 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
     return false;
 
   FunctionType *FuncTy = Call->getFunctionType();
-  unsigned Opc =
-      IsDirect ? WebAssembly::CALL : WebAssembly::CALL_INDIRECT_TABLE;
+  unsigned Opc = IsDirect ? WebAssembly::CALL : WebAssembly::CALL_INDIRECT;
   bool IsVoid = FuncTy->getReturnType()->isVoidTy();
   unsigned ResultReg;
   if (!IsVoid) {
@@ -869,12 +868,17 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
   if (IsDirect) {
     MIB.addGlobalAddress(Func);
   } else {
-    // Add a reference to the indirect function table, and placeholders for the
-    // type index and immediate flags.
+    // Placehoder for the type index.
+    MIB.addImm(0);
+    // The table into which this call_indirect indexes.
     auto &Context = MF->getMMI().getContext();
     auto BaseName = MF->createExternalSymbolName("__indirect_function_table");
-    MIB.addSym(Context.getOrCreateSymbol(BaseName));
-    MIB.addImm(0);
+    auto Sym = Context.getOrCreateSymbol(BaseName);
+    auto WasmSym = static_cast<MCSymbolWasm *>(Sym);
+    WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
+    WasmSym->setTableType(wasm::ValType::FUNCREF);
+    MIB.addSym(WasmSym);
+    // Placeholder for immediate flags.
     MIB.addImm(0);
   }
 

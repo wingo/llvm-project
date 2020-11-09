@@ -379,12 +379,8 @@ inline bool isCallIndirect(unsigned Opc) {
   switch (Opc) {
   case WebAssembly::CALL_INDIRECT:
   case WebAssembly::CALL_INDIRECT_S:
-  case WebAssembly::CALL_INDIRECT_TABLE:
-  case WebAssembly::CALL_INDIRECT_TABLE_S:
   case WebAssembly::RET_CALL_INDIRECT:
   case WebAssembly::RET_CALL_INDIRECT_S:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE_S:
     return true;
   default:
     return false;
@@ -395,8 +391,6 @@ inline bool isRetCallIndirect(unsigned Opc) {
   switch (Opc) {
   case WebAssembly::RET_CALL_INDIRECT:
   case WebAssembly::RET_CALL_INDIRECT_S:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE:
-  case WebAssembly::RET_CALL_INDIRECT_TABLE_S:
     return true;
   default:
     return false;
