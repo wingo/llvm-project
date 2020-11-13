@@ -490,7 +490,7 @@ public:
     bool ExpectBlockType = false;
     bool ExpectFuncType = false;
     bool ExpectHeapType = false;
-    Optional<wasm::WasmSymbolType> SymbolType;
+    bool ExpectFunctionTable = false;
     if (Name == "block") {
       push(Block);
       ExpectBlockType = true;
@@ -530,7 +530,7 @@ public:
         return true;
     } else if (Name == "call_indirect" || Name == "return_call_indirect") {
       ExpectFuncType = true;
-      SymbolType = wasm::WASM_SYMBOL_TYPE_TABLE;
+      ExpectFunctionTable = true;
     } else if (Name == "ref.null") {
       ExpectHeapType = true;
     }
@@ -546,7 +546,7 @@ public:
         return true;
       // Got signature as block type, don't need more
       ExpectBlockType = false;
-      auto &Ctx = getStreamer().getContext();
+      auto &Ctx = getContext();
       // The "true" here will cause this to be a nameless symbol.
       MCSymbol *Sym = Ctx.createTempSymbol("typeindex", true);
       auto *WasmSym = cast<MCSymbolWasm>(Sym);
@@ -593,23 +593,14 @@ public:
               WebAssemblyOperand::Integer, Id.getLoc(), Id.getEndLoc(),
               WebAssemblyOperand::IntOp{static_cast<int64_t>(HeapType)}));
           Parser.Lex();
+        } else if (ExpectFunctionTable) {
+          auto *Sym = getContext().getOrCreateWasmFunctionTableSymbol(Id.getString());
+          auto *Val = MCSymbolRefExpr::create(Sym, getContext());
+          Operands.push_back(std::make_unique<WebAssemblyOperand>(
+              WebAssemblyOperand::Symbol, Id.getLoc(), Id.getEndLoc(),
+              WebAssemblyOperand::SymOp{Val}));
+          Parser.Lex();
         } else {
-          // If we are expecting a symbol of a specific type, check the type of
-          // any existing symbol.  In the case the symbol doesn't exist yet,
-          // define it with the type that we are expecting.
-          if (SymbolType) {
-            auto &Ctx = getStreamer().getContext();
-            MCSymbol *Sym = Ctx.lookupSymbol(Id.getString());
-            if (Sym) {
-              auto *WasmSym = cast<MCSymbolWasm>(Sym);
-              if (WasmSym->getType() != SymbolType.getValue())
-                return error("Symbol defined with incompatible types: ", Id);
-            } else {
-              Sym = Ctx.getOrCreateSymbol(Id.getString());
-              auto *WasmSym = cast<MCSymbolWasm>(Sym);
-              WasmSym->setType(SymbolType.getValue());
-            }
-          }
           const MCExpr *Val;
           SMLoc End;
           if (Parser.parseExpression(Val, End))

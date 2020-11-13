@@ -148,11 +148,6 @@ void MCWasmStreamer::emitLocalCommonSymbol(MCSymbol *S, uint64_t Size,
   llvm_unreachable("Local common symbols are not yet implemented for Wasm");
 }
 
-void MCWasmStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
-                                   SMLoc Loc) {
-  MCObjectStreamer::emitValueImpl(Value, Size, Loc);
-}
-
 void MCWasmStreamer::emitValueToAlignment(unsigned ByteAlignment, int64_t Value,
                                           unsigned ValueSize,
                                           unsigned MaxBytesToEmit) {

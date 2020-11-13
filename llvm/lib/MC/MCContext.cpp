@@ -301,6 +301,24 @@ void MCContext::registerInlineAsmLabel(MCSymbol *Sym) {
   InlineAsmUsedLabelNames[Sym->getName()] = Sym;
 }
 
+MCSymbol* MCContext::getOrCreateWasmFunctionTableSymbol(StringRef TableName) {
+  if (auto Sym = cast_or_null<MCSymbolWasm>(Symbols.lookup(TableName))) {
+    if (!Sym->isFunctionTable())
+      reportError(SMLoc(), "symbol is not a wasm funcref table");
+    return Sym;
+  }
+  auto Sym = cast<MCSymbolWasm>(getOrCreateSymbol(TableName));
+  Sym->setFunctionTable();
+  return Sym;
+}
+
+MCSymbol* MCContext::getOrCreateWasmDefaultFunctionTableSymbol() {
+  auto Sym = getOrCreateWasmFunctionTableSymbol("__indirect_function_table");
+  // The default function table is synthesized by the linker.
+  Sym->setUndefined();
+  return Sym;
+}
+
 MCSymbolXCOFF *
 MCContext::createXCOFFSymbolImpl(const StringMapEntry<bool> *Name,
                                  bool IsTemporary) {

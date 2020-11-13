@@ -32,7 +32,7 @@ call_direct_ptr:
   .functype call_direct_ptr () -> (i32)
   i32.const 0
   i32.load direct_address
-  call_indirect () -> (i32)
+  call_indirect () -> (i32), __indirect_function_table
   end_function
 
 call_alias_ptr:
@@ -41,7 +41,7 @@ call_alias_ptr:
   .functype call_alias_ptr () -> (i32)
   i32.const 0
   i32.load alias_address
-  call_indirect () -> (i32)
+  call_indirect () -> (i32), __indirect_function_table
   end_function
 
 .section .data.bar,"",@

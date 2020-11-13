@@ -168,6 +168,7 @@ MCSymbolWasm *WebAssemblyAsmPrinter::getMCSymbolForFunction(
   } else {
     WasmSym = cast<MCSymbolWasm>(getSymbol(F));
   }
+  WasmSym->setType(wasm::WASM_SYMBOL_TYPE_FUNCTION);
   return WasmSym;
 }
 

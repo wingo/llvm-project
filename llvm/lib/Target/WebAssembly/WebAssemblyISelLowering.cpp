@@ -476,12 +476,8 @@ static MachineBasicBlock *LowerCallResults(MachineInstr &CallResults,
     // Placehoder for the type index.
     MIB.addImm(0);
     // The table into which this call_indirect indexes.
-    auto BaseName = MF.createExternalSymbolName("__indirect_function_table");
-    auto Sym = MF.getContext().getOrCreateSymbol(BaseName);
-    auto WasmSym = static_cast<MCSymbolWasm *>(Sym);
-    WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-    WasmSym->setTableType(wasm::ValType::FUNCREF);
-    MIB.addSym(WasmSym);
+    auto &Context = MF.getContext();
+    MIB.addSym(Context.getOrCreateWasmDefaultFunctionTableSymbol());
     // Placeholder for immediate flags.
     MIB.addImm(0);
   }

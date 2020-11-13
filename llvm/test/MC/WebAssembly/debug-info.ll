@@ -11,33 +11,33 @@
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: IMPORT (0x2)
-; CHECK-NEXT:    Size: 81
+; CHECK-NEXT:    Size: 47
 ; CHECK-NEXT:    Offset: 18
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: FUNCTION (0x3)
 ; CHECK-NEXT:    Size: 2
-; CHECK-NEXT:    Offset: 105
+; CHECK-NEXT:    Offset: 71
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: ELEM (0x9)
 ; CHECK-NEXT:    Size: 7
-; CHECK-NEXT:    Offset: 113
+; CHECK-NEXT:    Offset: 79
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: DATACOUNT (0xC)
 ; CHECK-NEXT:    Size: 1
-; CHECK-NEXT:    Offset: 126
+; CHECK-NEXT:    Offset: 92
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CODE (0xA)
 ; CHECK-NEXT:    Size: 4
-; CHECK-NEXT:    Offset: 133
+; CHECK-NEXT:    Offset: 99
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: DATA (0xB)
 ; CHECK-NEXT:    Size: 19
-; CHECK-NEXT:    Offset: 143
+; CHECK-NEXT:    Offset: 109
 ; CHECK-NEXT:    Segments [
 ; CHECK-NEXT:      Segment {
 ; CHECK-NEXT:        Name: .data.foo
@@ -54,79 +54,79 @@
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 86
-; CHECK-NEXT:    Offset: 168
+; CHECK-NEXT:    Offset: 134
 ; CHECK-NEXT:    Name: .debug_abbrev
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 114
-; CHECK-NEXT:    Offset: 274
+; CHECK-NEXT:    Offset: 240
 ; CHECK-NEXT:    Name: .debug_info
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 121
-; CHECK-NEXT:    Offset: 406
+; CHECK-NEXT:    Offset: 372
 ; CHECK-NEXT:    Name: .debug_str
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 42
-; CHECK-NEXT:    Offset: 544
+; CHECK-NEXT:    Offset: 510
 ; CHECK-NEXT:    Name: .debug_pubnames
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 26
-; CHECK-NEXT:    Offset: 608
+; CHECK-NEXT:    Offset: 574
 ; CHECK-NEXT:    Name: .debug_pubtypes
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 57
-; CHECK-NEXT:    Offset: 656
+; CHECK-NEXT:    Offset: 622
 ; CHECK-NEXT:    Name: .debug_line
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 91
-; CHECK-NEXT:    Offset: 731
+; CHECK-NEXT:    Offset: 697
 ; CHECK-NEXT:    Name: linking
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 9
-; CHECK-NEXT:    Offset: 836
+; CHECK-NEXT:    Offset: 802
 ; CHECK-NEXT:    Name: reloc.DATA
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 61
-; CHECK-NEXT:    Offset: 862
+; CHECK-NEXT:    Offset: 828
 ; CHECK-NEXT:    Name: reloc..debug_info
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 6
-; CHECK-NEXT:    Offset: 947
+; CHECK-NEXT:    Offset: 913
 ; CHECK-NEXT:    Name: reloc..debug_pubnames
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 6
-; CHECK-NEXT:    Offset: 981
+; CHECK-NEXT:    Offset: 947
 ; CHECK-NEXT:    Name: reloc..debug_pubtypes
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 6
-; CHECK-NEXT:    Offset: 1015
+; CHECK-NEXT:    Offset: 981
 ; CHECK-NEXT:    Name: reloc..debug_line
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:  Section {
 ; CHECK-NEXT:    Type: CUSTOM (0x0)
 ; CHECK-NEXT:    Size: 77
-; CHECK-NEXT:    Offset: 1045
+; CHECK-NEXT:    Offset: 1011
 ; CHECK-NEXT:    Name: producers
 ; CHECK-NEXT:  }
 ; CHECK-NEXT:]
@@ -219,7 +219,6 @@
 ; CHECK-NEXT:    Flags [ (0x10)
 ; CHECK-NEXT:      UNDEFINED (0x10)
 ; CHECK-NEXT:    ]
-; CHECK-NEXT:    ImportName: __stack_pointer
 ; CHECK-NEXT:    ImportModule: env
 ; CHECK-NEXT:    ElementIndex: 0x0
 ; CHECK-NEXT:  }

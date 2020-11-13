@@ -494,6 +494,17 @@ void WasmObjectWriter::recordRelocation(MCAssembler &Asm,
     SymA = cast<MCSymbolWasm>(SectionSymbol);
   }
 
+  if (Type == wasm::R_WASM_TABLE_INDEX_REL_SLEB ||
+      Type == wasm::R_WASM_TABLE_INDEX_SLEB ||
+      Type == wasm::R_WASM_TABLE_INDEX_SLEB64 ||
+      Type == wasm::R_WASM_TABLE_INDEX_I32 ||
+      Type == wasm::R_WASM_TABLE_INDEX_I64) {
+    // TABLE_INDEX relocs implicitly use the default indirect function table.
+    auto BaseSym = Ctx.getOrCreateWasmDefaultFunctionTableSymbol();
+    BaseSym->setUsedInReloc();
+    Asm.registerSymbol(*BaseSym);
+  }
+
   // Relocation other than R_WASM_TYPE_INDEX_LEB are required to be
   // against a named symbol.
   if (Type != wasm::R_WASM_TYPE_INDEX_LEB) {
@@ -1261,11 +1272,7 @@ void WasmObjectWriter::prepareImports(
         Import.Field = WS.getImportName();
         Import.Kind = wasm::WASM_EXTERNAL_TABLE;
         Import.Table.Index = NumTableImports;
-        // FIXME: We should probably use some other mechanism to attach types
-        // to forward-declared tables.  This case handles a forward-declared
-        // __indirect_function_table.
-        wasm::ValType ElemType =
-            WS.hasTableType() ? WS.getTableType() : wasm::ValType::FUNCREF;
+        wasm::ValType ElemType = WS.getTableType();
         Import.Table.ElemType = uint8_t(ElemType);
         // FIXME: ?
         Import.Table.Limits = {wasm::WASM_LIMITS_FLAG_NONE, 0, 0};

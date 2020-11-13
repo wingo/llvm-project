@@ -6,7 +6,7 @@
 
 test0:
     .functype   test0 (i32) -> (i32)
-    call_indirect (f64) -> (f64)
+    call_indirect (f64) -> (f64), __indirect_function_table
     end_function
 
 # CHECK:	.text

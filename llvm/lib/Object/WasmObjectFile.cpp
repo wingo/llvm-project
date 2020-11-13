@@ -1051,6 +1051,7 @@ Error WasmObjectFile::parseFunctionSection(ReadContext &Ctx) {
 }
 
 Error WasmObjectFile::parseTableSection(ReadContext &Ctx) {
+  TableSection = Sections.size();
   uint32_t Count = readVaruint32(Ctx);
   Tables.reserve(Count);
   while (Count--) {
@@ -1505,6 +1506,8 @@ uint32_t WasmObjectFile::getSymbolSectionIdImpl(const WasmSymbol &Sym) const {
     return Sym.Info.ElementIndex;
   case wasm::WASM_SYMBOL_TYPE_EVENT:
     return EventSection;
+  case wasm::WASM_SYMBOL_TYPE_TABLE:
+    return TableSection;
   default:
     llvm_unreachable("Unknown WasmSymbol::SymbolType");
   }

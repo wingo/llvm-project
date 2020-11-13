@@ -22,6 +22,9 @@ namespace llvm {
 class WebAssemblyTargetObjectFile final : public TargetLoweringObjectFileWasm {
 public:
   void Initialize(MCContext &Ctx, const TargetMachine &TM) override;
+
+  MCSymbol *getTargetSymbol(const GlobalValue *GV,
+                            const TargetMachine &TM) const override;
 };
 
 } // end namespace llvm

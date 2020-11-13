@@ -446,6 +446,16 @@ namespace llvm {
     /// inline assembly.
     void registerInlineAsmLabel(MCSymbol *Sym);
 
+    /// getOrCreateWasmFunctionTableSymbol - Gets or creates a symbol denoting a
+    /// WebAssembly table holding elements of type funcref.
+    MCSymbol *getOrCreateWasmFunctionTableSymbol(StringRef TableName);
+
+    /// getOrCreateWasmDefaultFunctionTableSymbol - By default, all WebAssembly
+    /// functions that can be called indirectly are put into a single well-known
+    /// function table, conventionally called __indirect_function_table.  This
+    /// table's definition is synthesized by the linker.
+    MCSymbol *getOrCreateWasmDefaultFunctionTableSymbol();
+
     /// @}
 
     /// \name Section Management

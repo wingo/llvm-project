@@ -18,6 +18,7 @@
 #include "WebAssemblyAsmPrinter.h"
 #include "WebAssemblyMachineFunctionInfo.h"
 #include "WebAssemblyRuntimeLibcallSignatures.h"
+#include "WebAssemblyUtilities.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/IR/Constants.h"
@@ -65,7 +66,6 @@ WebAssemblyMCInstLower::GetGlobalAddressSymbol(const MachineOperand &MO) const {
       F, EnableEmException || EnableEmSjLj, Signature.get(), InvokeDetected);
   WasmSym->setSignature(Signature.get());
   Printer.addSignature(std::move(Signature));
-  WasmSym->setType(wasm::WASM_SYMBOL_TYPE_FUNCTION);
   return WasmSym;
 }
 
@@ -93,6 +93,7 @@ MCSymbol *WebAssemblyMCInstLower::GetExternalSymbolSymbol(
     return WasmSym;
   }
 
+  /*
   if (strcmp(Name, "__indirect_function_table") == 0) {
     WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
     WasmSym->setTableType(wasm::ValType::FUNCREF);
@@ -100,6 +101,7 @@ MCSymbol *WebAssemblyMCInstLower::GetExternalSymbolSymbol(
     WasmSym->setUndefined();
     return WasmSym;
   }
+  */
 
   SmallVector<wasm::ValType, 4> Returns;
   SmallVector<wasm::ValType, 4> Params;
@@ -135,6 +137,7 @@ MCSymbol *WebAssemblyMCInstLower::GetExternalSymbolSymbol(
 
 MCOperand WebAssemblyMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
                                                      MCSymbol *Sym) const {
+  const auto *WasmSym = cast<MCSymbolWasm>(Sym);
   MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
   unsigned TargetFlags = MO.getTargetFlags();
 
@@ -157,7 +160,6 @@ MCOperand WebAssemblyMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
   const MCExpr *Expr = MCSymbolRefExpr::create(Sym, Kind, Ctx);
 
   if (MO.getOffset() != 0) {
-    const auto *WasmSym = cast<MCSymbolWasm>(Sym);
     if (TargetFlags == WebAssemblyII::MO_GOT)
       report_fatal_error("GOT symbol references do not support offsets");
     if (WasmSym->isFunction())

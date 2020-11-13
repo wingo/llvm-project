@@ -872,12 +872,7 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
     MIB.addImm(0);
     // The table into which this call_indirect indexes.
     auto &Context = MF->getMMI().getContext();
-    auto BaseName = MF->createExternalSymbolName("__indirect_function_table");
-    auto Sym = Context.getOrCreateSymbol(BaseName);
-    auto WasmSym = static_cast<MCSymbolWasm *>(Sym);
-    WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-    WasmSym->setTableType(wasm::ValType::FUNCREF);
-    MIB.addSym(WasmSym);
+    MIB.addSym(Context.getOrCreateWasmDefaultFunctionTableSymbol());
     // Placeholder for immediate flags.
     MIB.addImm(0);
   }
