@@ -162,8 +162,10 @@ typedef enum {
   LLVMX86_MMXTypeKind,   /**< X86 MMX */
   LLVMTokenTypeKind,     /**< Tokens */
   LLVMScalableVectorTypeKind, /**< Scalable SIMD vector type */
-  LLVMBFloatTypeKind,    /**< 16 bit brain floating point type */
-  LLVMX86_AMXTypeKind    /**< X86 AMX */
+  LLVMBFloatTypeKind,         /**< 16 bit brain floating point type */
+  LLVMX86_AMXTypeKind,        /**< X86 AMX */
+  LLVMWasm_FuncrefTypeKind,   /**< Wasm Funcref type */
+  LLVMWasm_ExternrefTypeKind  /**< Wasm Externref type */
 } LLVMTypeKind;
 
 typedef enum {
@@ -1505,6 +1507,16 @@ LLVMTypeRef LLVMLabelTypeInContext(LLVMContextRef C);
  * Create a X86 MMX type in a context.
  */
 LLVMTypeRef LLVMX86MMXTypeInContext(LLVMContextRef C);
+
+/**
+ * Create a WebAssembly externref type in a context.
+ */
+LLVMTypeRef LLVMWasmExternrefTypeInContext(LLVMContextRef C);
+
+/**
+ * Create a WebAssembly funcref type in a context.
+ */
+LLVMTypeRef LLVMWasmFuncrefTypeInContext(LLVMContextRef C);
 
 /**
  * Create a X86 AMX type in a context.

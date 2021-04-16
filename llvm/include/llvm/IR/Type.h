@@ -54,19 +54,21 @@ public:
   ///
   enum TypeID {
     // PrimitiveTypes
-    HalfTyID = 0,  ///< 16-bit floating point type
-    BFloatTyID,    ///< 16-bit floating point type (7-bit significand)
-    FloatTyID,     ///< 32-bit floating point type
-    DoubleTyID,    ///< 64-bit floating point type
-    X86_FP80TyID,  ///< 80-bit floating point type (X87)
-    FP128TyID,     ///< 128-bit floating point type (112-bit significand)
-    PPC_FP128TyID, ///< 128-bit floating point type (two 64-bits, PowerPC)
-    VoidTyID,      ///< type with no size
-    LabelTyID,     ///< Labels
-    MetadataTyID,  ///< Metadata
-    X86_MMXTyID,   ///< MMX vectors (64 bits, X86 specific)
-    X86_AMXTyID,   ///< AMX vectors (8192 bits, X86 specific)
-    TokenTyID,     ///< Tokens
+    HalfTyID = 0,       ///< 16-bit floating point type
+    BFloatTyID,         ///< 16-bit floating point type (7-bit significand)
+    FloatTyID,          ///< 32-bit floating point type
+    DoubleTyID,         ///< 64-bit floating point type
+    X86_FP80TyID,       ///< 80-bit floating point type (X87)
+    FP128TyID,          ///< 128-bit floating point type (112-bit significand)
+    PPC_FP128TyID,      ///< 128-bit floating point type (two 64-bits, PowerPC)
+    VoidTyID,           ///< type with no size
+    LabelTyID,          ///< Labels
+    MetadataTyID,       ///< Metadata
+    X86_MMXTyID,        ///< MMX vectors (64 bits, X86 specific)
+    X86_AMXTyID,        ///< AMX vectors (8192 bits, X86 specific)
+    TokenTyID,          ///< Tokens
+    Wasm_ExternrefTyID, ///< Externref Type (WebAssembly specific)
+    Wasm_FuncrefTyID,   ///< Funcref Type (WebAssembly specific)
 
     // Derived types... see DerivedTypes.h file.
     IntegerTyID,       ///< Arbitrary bit width integers
@@ -185,6 +187,17 @@ public:
 
   /// Return true if this is X86 AMX.
   bool isX86_AMXTy() const { return getTypeID() == X86_AMXTyID; }
+
+  /// Return true if this is externref.
+  bool isWasm_ExternrefTy() const { return getTypeID() == Wasm_ExternrefTyID; }
+
+  /// Return true if this is funcref.
+  bool isWasm_FuncrefTy() const { return getTypeID() == Wasm_FuncrefTyID; }
+
+  /// Return true if this is a reference type
+  bool isWasm_ReferenceTypeTy() const {
+    return isWasm_ExternrefTy() || isWasm_FuncrefTy();
+  }
 
   /// Return true if this is a FP type or a vector of FP.
   bool isFPOrFPVectorTy() const { return getScalarType()->isFloatingPointTy(); }
@@ -419,6 +432,8 @@ public:
   static Type *getPPC_FP128Ty(LLVMContext &C);
   static Type *getX86_MMXTy(LLVMContext &C);
   static Type *getX86_AMXTy(LLVMContext &C);
+  static Type *getWasm_ExternrefTy(LLVMContext &C);
+  static Type *getWasm_FuncrefTy(LLVMContext &C);
   static Type *getTokenTy(LLVMContext &C);
   static IntegerType *getIntNTy(LLVMContext &C, unsigned N);
   static IntegerType *getInt1Ty(LLVMContext &C);

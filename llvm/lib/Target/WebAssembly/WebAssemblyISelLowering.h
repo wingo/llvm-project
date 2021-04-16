@@ -45,6 +45,32 @@ public:
   WebAssemblyTargetLowering(const TargetMachine &TM,
                             const WebAssemblySubtarget &STI);
 
+  enum WasmAddressSpace {
+    DEFAULT = 0,
+    EXTERNREF = 1,
+    EXTERNREF_GLOBAL = 2,
+    FUNCREF = 3,
+    FUNCREF_GLOBAL = 4,
+  };
+
+  // WebAssembly uses 5 different address spaces [0, 4]:
+  // AS 0 : is the default address space
+  // AS 1 : is a non-integral address space for externref values
+  // AS 2 : is an integral address space for globals of externref values
+  // AS 3 : is an non-integral address space for funcref values
+  // AS 4 : is an integral address spaces for globals of funcref values
+  MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const override {
+    if (AS == WasmAddressSpace::EXTERNREF)
+      return MVT::externref;
+    else if (AS == WasmAddressSpace::FUNCREF)
+      return MVT::funcref;
+    return TargetLowering::getPointerTy(DL, AS);
+  }
+
+  /// Return the correct alignment for the current calling convention.
+  Align getABIAlignmentForCallingConv(Type *ArgTy,
+                                      DataLayout DL) const override;
+
 private:
   /// Keep a pointer to the WebAssemblySubtarget around so that we can make the
   /// right decision when generating code for different targets.
@@ -66,6 +92,9 @@ private:
   bool isLegalAddressingMode(const DataLayout &DL, const AddrMode &AM, Type *Ty,
                              unsigned AS,
                              Instruction *I = nullptr) const override;
+  bool isExternrefGlobal(SDValue Op) const;
+  bool isFuncrefGlobal(SDValue Op) const;
+  bool isFuncref(const Value *Op) const;
   bool allowsMisalignedMemoryAccesses(EVT, unsigned AddrSpace, Align Alignment,
                                       MachineMemOperand::Flags Flags,
                                       bool *Fast) const override;
@@ -100,6 +129,11 @@ private:
     report_fatal_error("llvm.clear_cache is not supported on wasm");
   }
 
+  bool splitValueIntoRegisterParts(SelectionDAG &DAG, const SDLoc &DL,
+                                   SDValue Val, SDValue *Parts,
+                                   unsigned NumParts, MVT PartVT,
+                                   Optional<CallingConv::ID> CC) const override;
+
   // Custom lowering hooks.
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
   SDValue LowerFrameIndex(SDValue Op, SelectionDAG &DAG) const;
@@ -119,6 +153,8 @@ private:
   SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerAccessVectorElement(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerShift(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerLoad(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerStore(SDValue Op, SelectionDAG &DAG) const;
 
   // Custom DAG combine hooks
   SDValue

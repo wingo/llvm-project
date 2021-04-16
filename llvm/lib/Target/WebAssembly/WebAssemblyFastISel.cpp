@@ -130,9 +130,13 @@ private:
     case MVT::i64:
     case MVT::f32:
     case MVT::f64:
+      return VT;
     case MVT::funcref:
     case MVT::externref:
-      return VT;
+      if (Subtarget->hasReferenceTypes())
+        return VT;
+      else
+        break;
     case MVT::f16:
       return MVT::f32;
     case MVT::v16i8:

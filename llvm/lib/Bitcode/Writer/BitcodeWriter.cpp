@@ -921,6 +921,12 @@ void ModuleBitcodeWriter::writeTypeTable() {
     case Type::X86_MMXTyID:   Code = bitc::TYPE_CODE_X86_MMX;   break;
     case Type::X86_AMXTyID:   Code = bitc::TYPE_CODE_X86_AMX;   break;
     case Type::TokenTyID:     Code = bitc::TYPE_CODE_TOKEN;     break;
+    case Type::Wasm_FuncrefTyID:
+      Code = bitc::TYPE_CODE_WASM_FUNCREF;
+      break;
+    case Type::Wasm_ExternrefTyID:
+      Code = bitc::TYPE_CODE_WASM_EXTERNREF;
+      break;
     case Type::IntegerTyID:
       // INTEGER: [width]
       Code = bitc::TYPE_CODE_INTEGER;

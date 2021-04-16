@@ -197,6 +197,12 @@ Type *Type::getFP128Ty(LLVMContext &C) { return &C.pImpl->FP128Ty; }
 Type *Type::getPPC_FP128Ty(LLVMContext &C) { return &C.pImpl->PPC_FP128Ty; }
 Type *Type::getX86_MMXTy(LLVMContext &C) { return &C.pImpl->X86_MMXTy; }
 Type *Type::getX86_AMXTy(LLVMContext &C) { return &C.pImpl->X86_AMXTy; }
+Type *Type::getWasm_ExternrefTy(LLVMContext &C) {
+  return &C.pImpl->Wasm_ExternrefTy;
+}
+Type *Type::getWasm_FuncrefTy(LLVMContext &C) {
+  return &C.pImpl->Wasm_FuncrefTy;
+}
 
 IntegerType *Type::getInt1Ty(LLVMContext &C) { return &C.pImpl->Int1Ty; }
 IntegerType *Type::getInt8Ty(LLVMContext &C) { return &C.pImpl->Int8Ty; }

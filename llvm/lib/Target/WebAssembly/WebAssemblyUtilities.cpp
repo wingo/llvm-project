@@ -116,6 +116,34 @@ MCSymbolWasm *WebAssembly::getOrCreateFunctionTableSymbol(
   return Sym;
 }
 
+MCSymbolWasm *WebAssembly::getOrCreateFuncrefCallTableSymbol(
+    MCContext &Ctx, const WebAssemblySubtarget *Subtarget) {
+  StringRef Name = "__funcref_call_table";
+  MCSymbolWasm *Sym = cast_or_null<MCSymbolWasm>(Ctx.lookupSymbol(Name));
+  if (Sym) {
+    if (!Sym->isFunctionTable())
+      Ctx.reportError(SMLoc(), "symbol is not a wasm funcref table");
+  } else {
+    Sym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(Name));
+
+    // The default function table is synthesized by the linker.
+    Sym->setUndefined();
+
+    // Setting Comdat ensure only one table is left after linking when multiple
+    // modules define the table.
+    Sym->setComdat(true);
+
+    wasm::WasmLimits limits = {0, 1, 1};
+    wasm::WasmTableType TableType = {wasm::WASM_TYPE_FUNCREF, limits};
+    Sym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
+    Sym->setTableType(TableType);
+  }
+  // MVP object files can't have symtab entries for tables.
+  if (!(Subtarget && Subtarget->hasReferenceTypes()))
+    Sym->setOmitFromLinkingSection();
+  return Sym;
+}
+
 // Find a catch instruction from an EH pad.
 MachineInstr *WebAssembly::findCatch(MachineBasicBlock *EHPad) {
   assert(EHPad->isEHPad());

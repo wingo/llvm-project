@@ -4080,6 +4080,7 @@ void SelectionDAGBuilder::visitLoad(const LoadInst &I) {
   SmallVector<SDValue, 4> Values(NumValues);
   SmallVector<SDValue, 4> Chains(std::min(MaxParallelChains, NumValues));
   EVT PtrVT = Ptr.getValueType();
+  EVT EltVT = PtrVT.getScalarType();
 
   MachineMemOperand::Flags MMOFlags
     = TLI.getLoadMemOperandFlags(I, DAG.getDataLayout());
@@ -4099,17 +4100,21 @@ void SelectionDAGBuilder::visitLoad(const LoadInst &I) {
       Root = Chain;
       ChainI = 0;
     }
-    SDValue A = DAG.getNode(ISD::ADD, dl,
-                            PtrVT, Ptr,
-                            DAG.getConstant(Offsets[i], dl, PtrVT),
-                            Flags);
+    SDValue A;
+
+    if (EltVT.isZeroSized())
+      A = Ptr;
+    else
+      A = DAG.getNode(ISD::ADD, dl, PtrVT, Ptr,
+                      DAG.getConstant(Offsets[i], dl, PtrVT), Flags);
 
     SDValue L = DAG.getLoad(MemVTs[i], dl, Root, A,
                             MachinePointerInfo(SV, Offsets[i]), Alignment,
                             MMOFlags, AAInfo, Ranges);
     Chains[ChainI] = L.getValue(1);
 
-    if (MemVTs[i] != ValueVTs[i])
+    // Skip ZExt or Trunc if a ValueVT is zero sized
+    if (!ValueVTs[i].isZeroSized() && MemVTs[i] != ValueVTs[i])
       L = DAG.getZExtOrTrunc(L, dl, ValueVTs[i]);
 
     Values[i] = L;
@@ -4248,7 +4253,8 @@ void SelectionDAGBuilder::visitStore(const StoreInst &I) {
     SDValue Add =
         DAG.getMemBasePlusOffset(Ptr, TypeSize::Fixed(Offsets[i]), dl, Flags);
     SDValue Val = SDValue(Src.getNode(), Src.getResNo() + i);
-    if (MemVTs[i] != ValueVTs[i])
+    // Skip ZExt or Trunc if a ValueVT is zero sized
+    if (!ValueVTs[i].isZeroSized() && MemVTs[i] != ValueVTs[i])
       Val = DAG.getPtrExtOrTrunc(Val, dl, MemVTs[i]);
     SDValue St =
         DAG.getStore(Root, dl, Val, Add, MachinePointerInfo(PtrV, Offsets[i]),

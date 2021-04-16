@@ -533,6 +533,10 @@ LLVMTypeKind LLVMGetTypeKind(LLVMTypeRef Ty) {
     return LLVMTokenTypeKind;
   case Type::ScalableVectorTyID:
     return LLVMScalableVectorTypeKind;
+  case Type::Wasm_FuncrefTyID:
+    return LLVMWasm_FuncrefTypeKind;
+  case Type::Wasm_ExternrefTyID:
+    return LLVMWasm_ExternrefTypeKind;
   }
   llvm_unreachable("Unhandled TypeID.");
 }
@@ -639,6 +643,12 @@ LLVMTypeRef LLVMPPCFP128TypeInContext(LLVMContextRef C) {
 }
 LLVMTypeRef LLVMX86MMXTypeInContext(LLVMContextRef C) {
   return (LLVMTypeRef) Type::getX86_MMXTy(*unwrap(C));
+}
+LLVMTypeRef LLVMWasmFuncrefTypeInContext(LLVMContextRef C) {
+  return (LLVMTypeRef)Type::getWasm_FuncrefTy(*unwrap(C));
+}
+LLVMTypeRef LLVMWasmExternrefTypeInContext(LLVMContextRef C) {
+  return (LLVMTypeRef)Type::getWasm_ExternrefTy(*unwrap(C));
 }
 LLVMTypeRef LLVMX86AMXTypeInContext(LLVMContextRef C) {
   return (LLVMTypeRef) Type::getX86_AMXTy(*unwrap(C));

@@ -153,6 +153,10 @@ struct TypeCloner {
         return LLVMX86AMXTypeInContext(Ctx);
       case LLVMX86_MMXTypeKind:
         return LLVMX86MMXTypeInContext(Ctx);
+      case LLVMWasm_FuncrefTypeKind:
+        return LLVMWasmFuncrefTypeInContext(Ctx);
+      case LLVMWasm_ExternrefTypeKind:
+        return LLVMWasmExternrefTypeInContext(Ctx);
       case LLVMTokenTypeKind:
         return LLVMTokenTypeInContext(Ctx);
     }
