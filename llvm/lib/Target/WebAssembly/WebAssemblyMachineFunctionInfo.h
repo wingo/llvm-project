@@ -37,6 +37,8 @@ class WebAssemblyFunctionInfo final : public MachineFunctionInfo {
   std::vector<MVT> Results;
   std::vector<MVT> Locals;
 
+  DenseMap<int, unsigned> FrameIndex2Local;
+
   /// A mapping from CodeGen vreg index to WebAssembly register number.
   std::vector<unsigned> WARegs;
 
@@ -93,6 +95,22 @@ public:
   void setLocal(size_t i, MVT VT) { Locals[i] = VT; }
   void addLocal(MVT VT) { Locals.push_back(VT); }
   const std::vector<MVT> &getLocals() const { return Locals; }
+
+  unsigned getLocalForStackObject(int FrameIndex, MVT VT) {
+    const auto &Iter = FrameIndex2Local.find(FrameIndex);
+    unsigned LocalIdx;
+    if (Iter == FrameIndex2Local.end()) {
+      LocalIdx = Locals.size();
+      // Add an entry that records the stack object at FrameIndex as being
+      // replaced by the WebAssembly local with index LocalIdx.  The caller is
+      // responsible for marking the stack object as dead in the frame.
+      FrameIndex2Local.insert(std::make_pair(FrameIndex, LocalIdx));
+      addLocal(VT);
+    } else {
+      LocalIdx = Iter->second;
+    }
+    return LocalIdx + Params.size();
+  }
 
   unsigned getVarargBufferVreg() const {
     assert(VarargVreg != -1U && "Vararg vreg hasn't been set");

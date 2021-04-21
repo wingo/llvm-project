@@ -73,6 +73,8 @@ def SDT_WebAssemblyCallSeqEnd :
     SDCallSeqEnd<[SDTCisVT<0, iPTR>, SDTCisVT<1, iPTR>]>;
 def SDT_WebAssemblyBrTable    : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_WebAssemblyArgument   : SDTypeProfile<1, 1, [SDTCisVT<1, i32>]>;
+def SDT_WebAssemblyLocalGet   : SDTypeProfile<1, 1, [SDTCisVT<1, i32>]>;
+def SDT_WebAssemblyLocalSet   : SDTypeProfile<0, 2, [SDTCisVT<0, i32>]>;
 def SDT_WebAssemblyReturn     : SDTypeProfile<0, -1, []>;
 def SDT_WebAssemblyWrapper    : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>,
                                                      SDTCisPtrTy<0>]>;
@@ -96,6 +98,12 @@ def WebAssemblybr_table : SDNode<"WebAssemblyISD::BR_TABLE",
                                  [SDNPHasChain, SDNPVariadic]>;
 def WebAssemblyargument : SDNode<"WebAssemblyISD::ARGUMENT",
                                  SDT_WebAssemblyArgument>;
+def WebAssemblylocalGet : SDNode<"WebAssemblyISD::LOCAL_GET",
+                                 SDT_WebAssemblyLocalGet,
+                                 [SDNPHasChain, SDNPMayLoad]>;
+def WebAssemblylocalSet : SDNode<"WebAssemblyISD::LOCAL_SET",
+                                 SDT_WebAssemblyLocalSet,
+                                 [SDNPHasChain, SDNPMayStore]>;
 def WebAssemblyreturn   : SDNode<"WebAssemblyISD::RETURN",
                                  SDT_WebAssemblyReturn,
                                  [SDNPHasChain, SDNPVariadic]>;

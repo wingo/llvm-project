@@ -296,6 +296,42 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
   setMinimumJumpTableEntries(2);
 }
 
+// With the reference-types feature, WebAssembly programs can have a mix of
+// pointers to data in linear memory and "opaque" data managed by the run-time.
+// For example, in a web embedding, these values might be garbage-collected
+// JavaScript values from the host.  In LLVM we allow references to
+// reference-typed values to be represented as pointers on the IR level, in
+// order to represent mutable global variables (which lower to WebAssembly
+// globals), global arrays (which lower to WebAssembly tables), and local
+// variables (which lower to WebAssembly locals).
+//
+// On the IR level, we distinguish these different kinds of
+// pointers-to-reference-types by putting the pointers into different address
+// spaces.  When translating an IR pointer to an MVT, the address space is the
+// only way to choose an MVT; notably, we don't have the llvm::PointerType.
+MVT WebAssemblyTargetLowering::getPointerTy(const DataLayout &DL,
+                                            uint32_t AS) const {
+    switch (AS) {
+    case WebAssembly::WASM_ADDRESS_SPACE_EXTERNREF:
+      // Externref values, punned as pointers in a specific address space.
+      return MVT::externref;
+    case WebAssembly::WASM_ADDRESS_SPACE_EXTERNREF_GLOBAL:
+    case WebAssembly::WASM_ADDRESS_SPACE_EXTERNREF_LOCAL:
+      // Externref locations.  Abuse MVT::externref because they really aren't
+      // normal pointers.
+      return MVT::externref;
+    case WebAssembly::WASM_ADDRESS_SPACE_FUNCREF:
+      // Funcref values.
+      return MVT::funcref;
+    case WebAssembly::WASM_ADDRESS_SPACE_FUNCREF_GLOBAL:
+    case WebAssembly::WASM_ADDRESS_SPACE_FUNCREF_LOCAL:
+      // Funcref locations, as in EXTERNREF_GLOBAL / EXTERNREF_LOCAL.
+      return MVT::funcref;
+    default:
+      return TargetLowering::getPointerTy(DL, AS);
+    }
+}
+
 TargetLowering::AtomicExpansionKind
 WebAssemblyTargetLowering::shouldExpandAtomicRMWInIR(AtomicRMWInst *AI) const {
   // We have wasm instructions for these
@@ -816,6 +852,13 @@ static bool callingConvSupported(CallingConv::ID CallConv) {
          CallConv == CallingConv::Swift;
 }
 
+static bool IsFuncref(const Value *Op) {
+  const Type *Ty = Op->getType();
+
+  return isa<PointerType>(Ty) &&
+    Ty->getPointerAddressSpace() == WebAssembly::WASM_ADDRESS_SPACE_FUNCREF;
+}
+
 SDValue
 WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
                                      SmallVectorImpl<SDValue> &InVals) const {
@@ -1052,7 +1095,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   // Lastly, if this is a call to a funcref we need to add an instruction
   // table.set to the chain and transform the call.
-  if (CLI.CB && isFuncref(CLI.CB->getCalledOperand())) {
+  if (CLI.CB && IsFuncref(CLI.CB->getCalledOperand())) {
     // In the absence of function references proposal where a funcref call is
     // lowered to call_ref, using reference types we generate a table.set to set
     // the funcref to a special table used solely for this purpose, followed by
@@ -1288,27 +1331,51 @@ SDValue WebAssemblyTargetLowering::LowerOperation(SDValue Op,
   }
 }
 
-bool WebAssemblyTargetLowering::isExternrefGlobal(SDValue Op) const {
+static Optional<MVT> GetGlobalReferenceType(SDValue Op) {
   const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::EXTERNREF_GLOBAL)
-    return false;
+  if (!GA)
+    return None;
 
-  return true;
+  switch (GA->getAddressSpace()) {
+    case WebAssembly::WASM_ADDRESS_SPACE_FUNCREF_GLOBAL:
+      return MVT(MVT::funcref);
+    case WebAssembly::WASM_ADDRESS_SPACE_EXTERNREF_GLOBAL:
+      return MVT(MVT::externref);
+    default:
+      return None;
+  }
 }
 
-bool WebAssemblyTargetLowering::isFuncrefGlobal(SDValue Op) const {
-  const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::FUNCREF_GLOBAL)
+static bool ResolveLocal(SDValue Op, SelectionDAG &DAG, MVT *VT,
+                         unsigned *Local) {
+  const FrameIndexSDNode *FI = dyn_cast<FrameIndexSDNode>(Op);
+  if (!FI)
     return false;
 
+  int FrameIndex = FI->getIndex();
+  auto &MFI = DAG.getMachineFunction().getFrameInfo();
+  const AllocaInst *AI = MFI.getObjectAllocation(FrameIndex);
+
+  if (!AI)
+    return false;
+
+  switch (AI->getType()->getAddressSpace()) {
+    case WebAssembly::WASM_ADDRESS_SPACE_FUNCREF_LOCAL:
+      *VT = MVT::funcref;
+      break;
+    case WebAssembly::WASM_ADDRESS_SPACE_EXTERNREF_LOCAL:
+      *VT = MVT::externref;
+      break;
+    default:
+      return false;
+  }
+
+  auto *FuncInfo = DAG.getMachineFunction().getInfo<WebAssemblyFunctionInfo>();
+  *Local = FuncInfo->getLocalForStackObject(FrameIndex, *VT);
+  // Mark stack object as dead, as it will be replaced by the local.
+  if (!MFI.isDeadObjectIndex(FrameIndex))
+    MFI.RemoveStackObject(FrameIndex);
   return true;
-}
-
-bool WebAssemblyTargetLowering::isFuncref(const Value *Op) const {
-  const Type *Ty = Op->getType();
-
-  return isa<PointerType>(Ty) &&
-    Ty->getPointerAddressSpace() == WasmAddressSpace::FUNCREF;
 }
 
 SDValue WebAssemblyTargetLowering::LowerStore(SDValue Op,
@@ -1316,25 +1383,28 @@ SDValue WebAssemblyTargetLowering::LowerStore(SDValue Op,
   SDLoc DL(Op);
 
   StoreSDNode *SN = cast<StoreSDNode>(Op.getNode());
-
   const SDValue &Value = SN->getValue();
-
-  // Expect Offset to be undef for externref global stores
-  const SDValue &Offset = SN->getOffset();
-  if (!Offset->isUndef())
-    return Op;
-
-  // Expect Base to be an externref GlobalAddress
   const SDValue &Base = SN->getBasePtr();
-  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
-    return Op;
 
-  EVT VT = isExternrefGlobal(Base) ? MVT::externref : MVT::funcref;
+  if (SN->getOffset()->isUndef()) {
+    if (Optional<MVT> VT = GetGlobalReferenceType(Base)) {
+      SDVTList Tys = DAG.getVTList(*VT);
+      SDValue Ops[] = {SN->getChain(), Value, Base};
+      return DAG.getMemIntrinsicNode(WebAssemblyISD::GLOBAL_SET, DL, Tys, Ops,
+                                     SN->getMemoryVT(), SN->getMemOperand());
+    }
 
-  SDVTList Tys = DAG.getVTList(VT);
-  SDValue Ops[] = {SN->getChain(), Value, Base};
-  return DAG.getMemIntrinsicNode(WebAssemblyISD::GLOBAL_SET, DL, Tys, Ops,
-                                 SN->getMemoryVT(), SN->getMemOperand());
+    MVT LocalVT;
+    unsigned LocalIdx;
+    if (ResolveLocal(Base, DAG, &LocalVT, &LocalIdx)) {
+      SDValue Idx = DAG.getTargetConstant(LocalIdx, Base, MVT::i32);
+      SDVTList Tys = DAG.getVTList(MVT::Other); // The chain.
+      SDValue Ops[] = {SN->getChain(), Idx, Value};
+      return DAG.getNode(WebAssemblyISD::LOCAL_SET, DL, Tys, Ops);
+    }
+  }
+
+  return Op;
 }
 
 SDValue WebAssemblyTargetLowering::LowerLoad(SDValue Op,
@@ -1344,24 +1414,29 @@ SDValue WebAssemblyTargetLowering::LowerLoad(SDValue Op,
   LoadSDNode *LN = cast<LoadSDNode>(Op.getNode());
   const SDValue &Base = LN->getBasePtr();
 
-  // Check Base is a Global Address
-  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
-    return Op;
+  if (LN->getOffset()->isUndef()) {
+    if (Optional<MVT> VT = GetGlobalReferenceType(Base)) {
+      SDValue GlobalGet = DAG.getMemIntrinsicNode(
+          WebAssemblyISD::GLOBAL_GET, DL, DAG.getVTList(*VT),
+          {LN->getChain(), Base}, LN->getMemoryVT(), LN->getMemOperand());
+      SDValue Result = DAG.getMergeValues({GlobalGet, LN->getChain()}, DL);
+      assert(Result->getNumValues() == 2 && "Loads must carry a chain!");
+      return Result;
+    }
 
-  // Check Offset if undef
-  const SDValue &Offset = LN->getOffset();
-  if (!Offset->isUndef())
-    return Op;
+    MVT LocalVT;
+    unsigned LocalIdx;
+    if (ResolveLocal(Base, DAG, &LocalVT, &LocalIdx)) {
+      SDValue Idx = DAG.getTargetConstant(LocalIdx, Base, MVT::i32);
+      SDValue LocalGet = DAG.getNode(WebAssemblyISD::LOCAL_GET, DL, LocalVT,
+                                     {LN->getChain(), Idx});
+      SDValue Result = DAG.getMergeValues({LocalGet, LN->getChain()}, DL);
+      assert(Result->getNumValues() == 2 && "Loads must carry a chain!");
+      return Result;
+    }
+  }
 
-  EVT VT = isExternrefGlobal(Base) ? MVT::externref : MVT::funcref;
-
-  SDValue GlobalGet = DAG.getMemIntrinsicNode(
-      WebAssemblyISD::GLOBAL_GET, DL, DAG.getVTList(VT), {LN->getChain(), Base},
-      LN->getMemoryVT(), LN->getMemOperand());
-  SDValue Result = DAG.getMergeValues({GlobalGet, LN->getChain()}, DL);
-  assert(Result->getNumValues() == 2 && "Loads must carry a chain!");
-
-  return Result;
+  return Op;
 }
 
 SDValue WebAssemblyTargetLowering::LowerCopyToReg(SDValue Op,
@@ -1393,6 +1468,7 @@ SDValue WebAssemblyTargetLowering::LowerCopyToReg(SDValue Op,
 SDValue WebAssemblyTargetLowering::LowerFrameIndex(SDValue Op,
                                                    SelectionDAG &DAG) const {
   int FI = cast<FrameIndexSDNode>(Op)->getIndex();
+  assert(!DAG.getMachineFunction().getFrameInfo().isDeadObjectIndex(FI));
   return DAG.getTargetFrameIndex(FI, Op.getValueType());
 }
 

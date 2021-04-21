@@ -28,6 +28,33 @@ class WebAssemblySubtarget;
 
 namespace WebAssembly {
 
+// FIXME: Renumber so that EXTERNREF_LOCAL is contiguous with EXTERNREF and
+// EXTERNREF_GLOBAL.
+// An unscoped enum, as address spaces are often produced and consumed as
+// uint32_t or unsigned.
+enum WasmAddressSpace {
+  // Default address space, for pointers to unmanaged data in linear memory
+  // (stack, heap, data).
+  WASM_ADDRESS_SPACE_DEFAULT = 0,
+  // A non-integral address space used to represent externref values.  We use a
+  // separate address space to prevent LLVM from attempting to write them to
+  // linear memory.  Because you can't add an offset to one externref value to
+  // get a new externref value, we mark this address space as non-integral.
+  WASM_ADDRESS_SPACE_EXTERNREF = 1,
+  // An integral address space for static-storage-duration locations of
+  // externref values.  This address space is integral, to allow for tables to
+  // be represented as arrays in IR.
+  WASM_ADDRESS_SPACE_EXTERNREF_GLOBAL = 2,
+  // A non-integral address space for automatic-storage-duration locations of
+  // externref values (local variables).  Non-integral because having the
+  // location of one local doesn't give you access to any other local.
+  WASM_ADDRESS_SPACE_EXTERNREF_LOCAL = 5,
+  // Same as above, but for funcref values.
+  WASM_ADDRESS_SPACE_FUNCREF = 3,
+  WASM_ADDRESS_SPACE_FUNCREF_GLOBAL = 4,
+  WASM_ADDRESS_SPACE_FUNCREF_LOCAL = 6,
+};
+
 bool isChild(const MachineInstr &MI, const WebAssemblyFunctionInfo &MFI);
 bool mayThrow(const MachineInstr &MI);
 
