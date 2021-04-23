@@ -24,6 +24,7 @@
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/SelectionDAG.h"
+#include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/WasmEHFuncInfo.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/DiagnosticPrinter.h"
@@ -66,8 +67,16 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
     addRegisterClass(MVT::v2i64, &WebAssembly::V128RegClass);
     addRegisterClass(MVT::v2f64, &WebAssembly::V128RegClass);
   }
+  if (Subtarget->hasReferenceTypes()) {
+    addRegisterClass(MVT::externref, &WebAssembly::EXTERNREFRegClass);
+    addRegisterClass(MVT::funcref, &WebAssembly::FUNCREFRegClass);
+  }
   // Compute derived properties from the register classes.
   computeRegisterProperties(Subtarget->getRegisterInfo());
+
+  setOperationAction(ISD::LOAD, MVTPtr, Custom);
+  setOperationAction(ISD::STORE, MVT::externref, Custom);
+  setOperationAction(ISD::STORE, MVT::funcref, Custom);
 
   setOperationAction(ISD::GlobalAddress, MVTPtr, Custom);
   setOperationAction(ISD::GlobalTLSAddress, MVTPtr, Custom);
@@ -454,6 +463,16 @@ LowerCallResults(MachineInstr &CallResults, DebugLoc DL, MachineBasicBlock *BB,
   bool IsIndirect = CallParams.getOperand(0).isReg();
   bool IsRetCall = CallResults.getOpcode() == WebAssembly::RET_CALL_RESULTS;
 
+  bool IsFuncrefCall = false;
+  if (IsIndirect) {
+    Register Reg = CallParams.getOperand(0).getReg();
+    const MachineFunction *MF = BB->getParent();
+    const MachineRegisterInfo &MRI = MF->getRegInfo();
+    const TargetRegisterClass *TRC = MRI.getRegClass(Reg);
+    IsFuncrefCall = (TRC == &WebAssembly::FUNCREFRegClass);
+    assert(!IsFuncrefCall || Subtarget->hasReferenceTypes());
+  }
+
   unsigned CallOp;
   if (IsIndirect && IsRetCall) {
     CallOp = WebAssembly::RET_CALL_INDIRECT;
@@ -497,8 +516,11 @@ LowerCallResults(MachineInstr &CallResults, DebugLoc DL, MachineBasicBlock *BB,
     // Placeholder for the type index.
     MIB.addImm(0);
     // The table into which this call_indirect indexes.
-    MCSymbolWasm *Table =
-        WebAssembly::getOrCreateFunctionTableSymbol(MF.getContext(), Subtarget);
+    MCSymbolWasm *Table = IsFuncrefCall
+                              ? WebAssembly::getOrCreateFuncrefCallTableSymbol(
+                                    MF.getContext(), Subtarget)
+                              : WebAssembly::getOrCreateFunctionTableSymbol(
+                                    MF.getContext(), Subtarget);
     if (Subtarget->hasReferenceTypes()) {
       MIB.addSym(Table);
     } else {
@@ -1045,6 +1067,33 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
     InTys.push_back(In.VT);
   }
 
+  // Lastly, if this is a call to a funcref we need to add an instruction
+  // table.set to the chain and transform the call.
+  if (CLI.CB && isFuncref(CLI.CB->getCalledOperand())) {
+    // In the absence of function references proposal where a funcref call is
+    // lowered to call_ref, using reference types we generate a table.set to set
+    // the funcref to a special table used solely for this purpose, followed by
+    // a call_indirect. Here we just generate the table set, and return the
+    // SDValue of the table.set so that LowerCall can finalize the lowering by
+    // generating the call_indirect.
+    SDValue Chain = Ops[0];
+
+    MCSymbolWasm *Table = WebAssembly::getOrCreateFuncrefCallTableSymbol(
+        MF.getContext(), Subtarget);
+    SDValue Sym = DAG.getMCSymbol(Table, PtrVT);
+    SDValue TableSlot = DAG.getConstant(0, DL, MVT::i32);
+    SDValue TableSetOps[] = {Chain, Sym, Callee, TableSlot};
+    SDValue TableSet = DAG.getMemIntrinsicNode(
+        WebAssemblyISD::TABLE_SET, DL, DAG.getVTList(MVT::Other),
+        TableSetOps, MVT::funcref,
+        // Machine Mem Operand args
+        MachinePointerInfo(/*funcref addrspace*/ 3),
+        CLI.CB->getCalledOperand()->getPointerAlignment(DAG.getDataLayout()),
+        MachineMemOperand::MOStore);
+
+    Ops[0] = TableSet; // The new chain is the TableSet itself
+  }
+
   if (CLI.IsTailCall) {
     // ret_calls do not return values to the current frame
     SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
@@ -1253,7 +1302,85 @@ SDValue WebAssemblyTargetLowering::LowerOperation(SDValue Op,
   case ISD::FP_TO_SINT_SAT:
   case ISD::FP_TO_UINT_SAT:
     return LowerFP_TO_INT_SAT(Op, DAG);
+  case ISD::LOAD:
+    return LowerLoad(Op, DAG);
+  case ISD::STORE:
+    return LowerStore(Op, DAG);
   }
+}
+
+bool WebAssemblyTargetLowering::isExternrefGlobal(SDValue Op) const {
+  const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
+  if (!GA || GA->getAddressSpace() != WasmAddressSpace::EXTERNREF_GLOBAL)
+    return false;
+
+  return true;
+}
+
+bool WebAssemblyTargetLowering::isFuncrefGlobal(SDValue Op) const {
+  const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
+  if (!GA || GA->getAddressSpace() != WasmAddressSpace::FUNCREF_GLOBAL)
+    return false;
+
+  return true;
+}
+
+bool WebAssemblyTargetLowering::isFuncref(const Value *Op) const {
+  const Type *Ty = Op->getType();
+
+  return isa<PointerType>(Ty) &&
+         Ty->getPointerAddressSpace() == WasmAddressSpace::FUNCREF;
+}
+
+SDValue WebAssemblyTargetLowering::LowerStore(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+
+  StoreSDNode *SN = cast<StoreSDNode>(Op.getNode());
+
+  const SDValue &Value = SN->getValue();
+
+  // Expect Offset to be undef for externref global stores
+  const SDValue &Offset = SN->getOffset();
+  if (!Offset->isUndef())
+    return Op;
+
+  // Expect Base to be an externref GlobalAddress
+  const SDValue &Base = SN->getBasePtr();
+  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
+    return Op;
+
+  SDVTList Tys = DAG.getVTList(MVT::Other);
+  SDValue Ops[] = {SN->getChain(), Value, Base};
+  return DAG.getMemIntrinsicNode(WebAssemblyISD::GLOBAL_SET, DL, Tys, Ops,
+                                 SN->getMemoryVT(), SN->getMemOperand());
+}
+
+SDValue WebAssemblyTargetLowering::LowerLoad(SDValue Op,
+                                             SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+
+  LoadSDNode *LN = cast<LoadSDNode>(Op.getNode());
+  const SDValue &Base = LN->getBasePtr();
+
+  // Check Base is a Global Address
+  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
+    return Op;
+
+  // Check Offset if undef
+  const SDValue &Offset = LN->getOffset();
+  if (!Offset->isUndef())
+    return Op;
+
+  EVT VT = isExternrefGlobal(Base) ? MVT::externref : MVT::funcref;
+
+  SDValue GlobalGet = DAG.getMemIntrinsicNode(
+      WebAssemblyISD::GLOBAL_GET, DL, DAG.getVTList(VT), {LN->getChain(), Base},
+      LN->getMemoryVT(), LN->getMemOperand());
+  SDValue Result = DAG.getMergeValues({GlobalGet, LN->getChain()}, DL);
+  assert(Result->getNumValues() == 2 && "Loads must carry a chain!");
+
+  return Result;
 }
 
 SDValue WebAssemblyTargetLowering::LowerCopyToReg(SDValue Op,
@@ -1374,8 +1501,6 @@ SDValue WebAssemblyTargetLowering::LowerGlobalAddress(SDValue Op,
   EVT VT = Op.getValueType();
   assert(GA->getTargetFlags() == 0 &&
          "Unexpected target flags on generic GlobalAddressSDNode");
-  if (GA->getAddressSpace() != 0)
-    fail(DL, DAG, "WebAssembly only expects the 0 address space");
 
   unsigned OperandFlags = 0;
   if (isPositionIndependent()) {
@@ -2185,4 +2310,14 @@ WebAssemblyTargetLowering::PerformDAGCombine(SDNode *N,
   case ISD::CONCAT_VECTORS:
     return performVectorTruncSatLowCombine(N, DCI);
   }
+}
+
+bool WebAssemblyTargetLowering::splitValueIntoRegisterParts(
+    SelectionDAG &DAG, const SDLoc &DL, SDValue Val, SDValue *Parts,
+    unsigned NumParts, MVT PartVT, Optional<CallingConv::ID> CC) const {
+  if (PartVT.isZeroSized()) {
+    Parts[0] = Val;
+    return true;
+  }
+  return false;
 }

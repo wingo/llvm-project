@@ -116,6 +116,28 @@ defm : LoadPatOffsetOnly<i64, load, "LOAD_I64">;
 defm : LoadPatOffsetOnly<f32, load, "LOAD_F32">;
 defm : LoadPatOffsetOnly<f64, load, "LOAD_F64">;
 
+// Global GET
+def wasm_global_get_t : SDTypeProfile<1, 1, [SDTCisPtrTy<1>]>;
+def wasm_global_get : SDNode<"WebAssemblyISD::GLOBAL_GET", wasm_global_get_t,
+                        [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
+def : Pat<(externref (wasm_global_get (WebAssemblywrapper tglobaladdr:$addr))),
+          (GLOBAL_GET_EXTERNREF tglobaladdr:$addr)>,
+      Requires<[HasReferenceTypes]>;
+def : Pat<(funcref (wasm_global_get (WebAssemblywrapper tglobaladdr:$addr))),
+          (GLOBAL_GET_FUNCREF tglobaladdr:$addr)>,
+      Requires<[HasReferenceTypes]>;
+
+// Global SET
+def wasm_global_set_t : SDTypeProfile<0, 2, [SDTCisPtrTy<1>]>;
+def wasm_global_set : SDNode<"WebAssemblyISD::GLOBAL_SET", wasm_global_set_t,
+                        [SDNPHasChain, SDNPMayStore, SDNPMemOperand]>;
+def : Pat<(wasm_global_set externref:$v, (WebAssemblywrapper tglobaladdr:$addr)),
+          (GLOBAL_SET_EXTERNREF tglobaladdr:$addr, EXTERNREF:$v)>,
+      Requires<[HasReferenceTypes]>;
+def : Pat<(wasm_global_set funcref:$v, (WebAssemblywrapper tglobaladdr:$addr)),
+          (GLOBAL_SET_FUNCREF tglobaladdr:$addr, FUNCREF:$v)>,
+      Requires<[HasReferenceTypes]>;
+
 multiclass LoadPatGlobalAddrOffOnly<ValueType ty, SDPatternOperator kind, string inst> {
   def : Pat<(ty (kind (WebAssemblywrapper tglobaladdr:$off))),
             (!cast<NI>(inst # "_A32") 0, tglobaladdr:$off, (CONST_I32 0))>,
