@@ -1326,7 +1326,7 @@ SDValue WebAssemblyTargetLowering::LowerOperation(SDValue Op,
 
 bool WebAssemblyTargetLowering::isExternrefGlobal(SDValue Op) const {
   const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::EXTERNREF_GLOBAL)
+  if (!GA || GA->getAddressSpace() != WasmAddressSpace::EXTERNREF_SCALAR)
     return false;
 
   return true;
@@ -1334,7 +1334,7 @@ bool WebAssemblyTargetLowering::isExternrefGlobal(SDValue Op) const {
 
 bool WebAssemblyTargetLowering::isFuncrefGlobal(SDValue Op) const {
   const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::FUNCREF_GLOBAL)
+  if (!GA || GA->getAddressSpace() != WasmAddressSpace::FUNCREF_SCALAR)
     return false;
 
   return true;
