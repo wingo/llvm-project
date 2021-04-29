@@ -539,6 +539,21 @@ LowerCallResults(MachineInstr &CallResults, DebugLoc DL, MachineBasicBlock *BB,
   CallParams.eraseFromParent();
   CallResults.eraseFromParent();
 
+  // If this is a funcref call, to avoid hidden GC roots, we need to clear the table
+  // slot with ref.null upon call_indirect return.
+  if (IsIndirect && IsFuncrefCall) {
+    MCSymbolWasm *Table = WebAssembly::getOrCreateFuncrefCallTableSymbol(MF.getContext(), Subtarget);
+    Register RegFuncref =
+        MF.getRegInfo().createVirtualRegister(&WebAssembly::FUNCREFRegClass);
+    MachineInstrBuilder RefNull(MF, MF.CreateMachineInstr(TII.get(WebAssembly::REF_NULL_FUNCREF), DL));
+    RefNull.addReg(RegFuncref);
+    BB->insert(MIB.getInstr()->getIterator(), RefNull);
+
+    MachineInstrBuilder TableSet(MF, MF.CreateMachineInstr(TII.get(WebAssembly::TABLE_SET_FUNCREF), DL));
+    TableSet.addSym(Table).addReg(RegFuncref).addImm(0);
+    BB->insert(RefNull.getInstr()->getIterator(), TableSet);
+  }
+    
   return BB;
 }
 
@@ -1084,10 +1099,10 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
     SDValue TableSlot = DAG.getConstant(0, DL, MVT::i32);
     SDValue TableSetOps[] = {Chain, Sym, Callee, TableSlot};
     SDValue TableSet = DAG.getMemIntrinsicNode(
-        WebAssemblyISD::TABLE_SET, DL, DAG.getVTList(MVT::Other),
-        TableSetOps, MVT::funcref,
+        WebAssemblyISD::TABLE_SET, DL, DAG.getVTList(MVT::Other), TableSetOps,
+        MVT::funcref,
         // Machine Mem Operand args
-        MachinePointerInfo(/*funcref addrspace*/ 3),
+        MachinePointerInfo(WasmAddressSpace::FUNCREF),
         CLI.CB->getCalledOperand()->getPointerAlignment(DAG.getDataLayout()),
         MachineMemOperand::MOStore);
 

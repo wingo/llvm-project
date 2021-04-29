@@ -18,4 +18,3 @@ define void @call_funcref(%funcref %ref) {
 ; CHECK-NEXT: end_function
 
 ; CHECK: .tabletype __funcref_call_table, funcref
-
