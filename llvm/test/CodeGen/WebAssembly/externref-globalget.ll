@@ -1,13 +1,13 @@
 ; RUN: llc < %s --mtriple=wasm32-unknown-unknown -asm-verbose=false -mattr=+reference-types | FileCheck %s
 
 %extern = type opaque
-%externref = type %extern addrspace(1)* ;; addrspace 1 is nonintegral
+%externref = type %extern addrspace(10)* ;; addrspace 10 is nonintegral
 
-@externref_global = local_unnamed_addr addrspace(2) global %externref undef
+@externref_global = local_unnamed_addr addrspace(11) global %externref undef
 
 define %externref @return_externref_global() {
   ;; this generates a global.get of @externref_global
-  %ref = load %externref, %externref addrspace(2)* @externref_global
+  %ref = load %externref, %externref addrspace(11)* @externref_global
   ret %externref %ref
 }
 

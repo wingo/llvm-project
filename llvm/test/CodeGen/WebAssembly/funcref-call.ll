@@ -1,10 +1,10 @@
 ; RUN: llc < %s --mtriple=wasm32-unknown-unknown -asm-verbose=false -mattr=+reference-types | FileCheck %s
 
 %func = type void ()
-%funcref = type %func addrspace(3)* ;; addrspace 3 is nonintegral
+%funcref = type %func addrspace(20)* ;; addrspace 20 is nonintegral
 
 define void @call_funcref(%funcref %ref) {
-  call addrspace(3) void %ref() 
+  call addrspace(20) void %ref() 
   ret void
 }
 

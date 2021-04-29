@@ -47,18 +47,18 @@ public:
 
   enum WasmAddressSpace {
     DEFAULT = 0,
-    EXTERNREF = 1,
-    EXTERNREF_GLOBAL = 2,
-    FUNCREF = 3,
-    FUNCREF_GLOBAL = 4,
+    EXTERNREF = 10,
+    EXTERNREF_GLOBAL = 11,
+    FUNCREF = 20,
+    FUNCREF_GLOBAL = 21,
   };
 
-  // WebAssembly uses 5 different address spaces [0, 4]:
-  // AS 0 : is the default address space
-  // AS 1 : is a non-integral address space for externref values
-  // AS 2 : is an integral address space for globals of externref values
-  // AS 3 : is an non-integral address space for funcref values
-  // AS 4 : is an integral address spaces for globals of funcref values
+  // WebAssembly uses the following address spaces:
+  // AS 0  : is the default address space for values in linear memory
+  // AS 10 : is a non-integral address space for externref values
+  // AS 11 : is an integral address space for addresses of externref values
+  // AS 20 : is a non-integral address space for funcref values
+  // AS 21 : is an integral address space for addresses of funcref values
   MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const override {
     if (AS == WasmAddressSpace::EXTERNREF)
       return MVT::externref;

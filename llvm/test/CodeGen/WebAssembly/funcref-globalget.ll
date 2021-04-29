@@ -1,13 +1,13 @@
 ; RUN: llc < %s --mtriple=wasm32-unknown-unknown -asm-verbose=false -mattr=+reference-types | FileCheck %s
 
 %func = type opaque
-%funcref = type %func addrspace(3)* ;; addrspace 3 is nonintegral
+%funcref = type %func addrspace(20)* ;; addrspace 3 is nonintegral
 
-@funcref_global = local_unnamed_addr addrspace(4) global %funcref undef
+@funcref_global = local_unnamed_addr addrspace(21) global %funcref undef
 
 define %funcref @return_funcref_global() {
   ;; this generates a global.get of @funcref_global
-  %ref = load %funcref, %funcref addrspace(4)* @funcref_global
+  %ref = load %funcref, %funcref addrspace(21)* @funcref_global
   ret %funcref %ref
 }
 
