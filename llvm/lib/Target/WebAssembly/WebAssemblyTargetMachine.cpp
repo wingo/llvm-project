@@ -127,10 +127,10 @@ WebAssemblyTargetMachine::WebAssemblyTargetMachine(
     : LLVMTargetMachine(T,
                         TT.isArch64Bit()
                             ? (hasReferenceTypes(FS)
-                                   ? "e-m:e-p:64:64-i64:64-n32:64-S128-ni:10:11:20:21"
+                                   ? "e-m:e-p:64:64-i64:64-n32:64-S128-ni:10:20:30"
                                    : "e-m:e-p:64:64-i64:64-n32:64-S128")
                             : (hasReferenceTypes(FS)
-                                   ? "e-m:e-p:32:32-i64:64-n32:64-S128-ni:10:11:20:21"
+                                   ? "e-m:e-p:32:32-i64:64-n32:64-S128-ni:10:20:30"
                                    : "e-m:e-p:32:32-i64:64-n32:64-S128"),
                         TT, CPU, FS, Options, getEffectiveRelocModel(RM, TT),
                         getEffectiveCodeModel(CM, CodeModel::Large), OL),
