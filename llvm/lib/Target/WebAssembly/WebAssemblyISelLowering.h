@@ -48,23 +48,28 @@ public:
   enum WasmAddressSpace {
     DEFAULT = 0,
     EXTERNREF = 10,
-    EXTERNREF_SCALAR = 11,
     FUNCREF = 20,
-    FUNCREF_SCALAR = 21,
+    GLOBAL = 30,
   };
 
   // WebAssembly uses the following address spaces:
   // AS 0  : is the default address space for values in linear memory
   // AS 10 : is a non-integral address space for externref values
-  // AS 11 : is a non-integral address space of pointers to externref
   // AS 20 : is a non-integral address space for funcref values
-  // AS 21 : is a non-integral address space of pointers to funcref
+  // AS 30 : is a non-integral address space for global variables
   MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const override {
     if (AS == WasmAddressSpace::EXTERNREF)
       return MVT::externref;
     else if (AS == WasmAddressSpace::FUNCREF)
       return MVT::funcref;
     return TargetLowering::getPointerTy(DL, AS);
+  }
+  MVT getPointerMemTy(const DataLayout &DL, uint32_t AS = 0) const override {
+    if (AS == WasmAddressSpace::EXTERNREF)
+      return MVT::externref;
+    else if (AS == WasmAddressSpace::FUNCREF)
+      return MVT::funcref;
+    return TargetLowering::getPointerMemTy(DL, AS);
   }
 
 private:
@@ -88,8 +93,6 @@ private:
   bool isLegalAddressingMode(const DataLayout &DL, const AddrMode &AM, Type *Ty,
                              unsigned AS,
                              Instruction *I = nullptr) const override;
-  bool isExternrefGlobal(SDValue Op) const;
-  bool isFuncrefGlobal(SDValue Op) const;
   bool isFuncref(const Value *Op) const;
   bool allowsMisalignedMemoryAccesses(EVT, unsigned AddrSpace, Align Alignment,
                                       MachineMemOperand::Flags Flags,

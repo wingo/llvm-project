@@ -3,11 +3,11 @@
 %func = type opaque
 %funcref = type %func addrspace(20)* ;; addrspace 20 is nonintegral
 
-@funcref_global = local_unnamed_addr addrspace(21) global %funcref undef
+@funcref_global = local_unnamed_addr addrspace(30) global %funcref undef
 
 define void @set_funcref_global(%funcref %g) {
   ;; this generates a global.set of @funcref_global
-  store %funcref %g, %funcref addrspace(21)* @funcref_global
+  store %funcref %g, %funcref addrspace(30)* @funcref_global
   ret void
 }
 

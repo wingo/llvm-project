@@ -3,11 +3,11 @@
 %extern = type opaque
 %externref = type %extern addrspace(10)* ;; addrspace 1 is nonintegral
 
-@externref_global = local_unnamed_addr addrspace(11) global %externref undef
+@externref_global = local_unnamed_addr addrspace(30) global %externref undef
 
 define void @set_externref_global(%externref %g) {
   ;; this generates a global.set of @externref.global
-  store %externref %g, %externref addrspace(11)* @externref_global
+  store %externref %g, %externref addrspace(30)* @externref_global
   ret void
 }
 

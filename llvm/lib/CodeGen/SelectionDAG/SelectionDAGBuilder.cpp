@@ -4049,6 +4049,8 @@ void SelectionDAGBuilder::visitLoad(const LoadInst &I) {
 
   SmallVector<EVT, 4> ValueVTs, MemVTs;
   SmallVector<uint64_t, 4> Offsets;
+  // Note for tomorrow: MemVTs gets populated with type of void* because
+  // getPointerMemTy is hardcoded to return i32.  
   ComputeValueVTs(TLI, DAG.getDataLayout(), Ty, ValueVTs, &MemVTs, &Offsets);
   unsigned NumValues = ValueVTs.size();
   if (NumValues == 0)

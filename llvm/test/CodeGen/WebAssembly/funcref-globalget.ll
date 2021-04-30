@@ -3,11 +3,11 @@
 %func = type opaque
 %funcref = type %func addrspace(20)* ;; addrspace 3 is nonintegral
 
-@funcref_global = local_unnamed_addr addrspace(21) global %funcref undef
+@funcref_global = local_unnamed_addr addrspace(30) global %funcref undef
 
 define %funcref @return_funcref_global() {
   ;; this generates a global.get of @funcref_global
-  %ref = load %funcref, %funcref addrspace(21)* @funcref_global
+  %ref = load %funcref, %funcref addrspace(30)* @funcref_global
   ret %funcref %ref
 }
 

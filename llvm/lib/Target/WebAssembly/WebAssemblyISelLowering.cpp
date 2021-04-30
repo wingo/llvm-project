@@ -74,7 +74,8 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
   // Compute derived properties from the register classes.
   computeRegisterProperties(Subtarget->getRegisterInfo());
 
-  setOperationAction(ISD::LOAD, MVTPtr, Custom);
+  setOperationAction(ISD::LOAD, MVT::externref, Custom);
+  setOperationAction(ISD::LOAD, MVT::funcref, Custom);
   setOperationAction(ISD::STORE, MVT::externref, Custom);
   setOperationAction(ISD::STORE, MVT::funcref, Custom);
 
@@ -1324,20 +1325,11 @@ SDValue WebAssemblyTargetLowering::LowerOperation(SDValue Op,
   }
 }
 
-bool WebAssemblyTargetLowering::isExternrefGlobal(SDValue Op) const {
-  const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::EXTERNREF_SCALAR)
-    return false;
+static bool IsWebAssemblyGlobal(SDValue Op) {
+  if (const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op))
+    return GA->getAddressSpace() == WebAssemblyTargetLowering::WasmAddressSpace::GLOBAL;
 
-  return true;
-}
-
-bool WebAssemblyTargetLowering::isFuncrefGlobal(SDValue Op) const {
-  const GlobalAddressSDNode *GA = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GA || GA->getAddressSpace() != WasmAddressSpace::FUNCREF_SCALAR)
-    return false;
-
-  return true;
+  return false;
 }
 
 bool WebAssemblyTargetLowering::isFuncref(const Value *Op) const {
@@ -1350,52 +1342,45 @@ bool WebAssemblyTargetLowering::isFuncref(const Value *Op) const {
 SDValue WebAssemblyTargetLowering::LowerStore(SDValue Op,
                                               SelectionDAG &DAG) const {
   SDLoc DL(Op);
-
   StoreSDNode *SN = cast<StoreSDNode>(Op.getNode());
-
   const SDValue &Value = SN->getValue();
-
-  // Expect Offset to be undef for externref global stores
   const SDValue &Offset = SN->getOffset();
-  if (!Offset->isUndef())
-    return Op;
-
-  // Expect Base to be an externref GlobalAddress
   const SDValue &Base = SN->getBasePtr();
-  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
-    return Op;
 
-  SDVTList Tys = DAG.getVTList(MVT::Other);
-  SDValue Ops[] = {SN->getChain(), Value, Base};
-  return DAG.getMemIntrinsicNode(WebAssemblyISD::GLOBAL_SET, DL, Tys, Ops,
-                                 SN->getMemoryVT(), SN->getMemOperand());
+  if (IsWebAssemblyGlobal(Base)) {
+    if (!Offset->isUndef())
+      report_fatal_error(
+          "unexpected offset when storing to webassembly global", false);
+
+    SDVTList Tys = DAG.getVTList(MVT::Other);
+    SDValue Ops[] = {SN->getChain(), Value, Base};
+    return DAG.getMemIntrinsicNode(WebAssemblyISD::GLOBAL_SET, DL, Tys, Ops,
+                                   SN->getMemoryVT(), SN->getMemOperand());
+  }
+
+  return Op;
 }
 
 SDValue WebAssemblyTargetLowering::LowerLoad(SDValue Op,
                                              SelectionDAG &DAG) const {
   SDLoc DL(Op);
-
   LoadSDNode *LN = cast<LoadSDNode>(Op.getNode());
   const SDValue &Base = LN->getBasePtr();
-
-  // Check Base is a Global Address
-  if (!isExternrefGlobal(Base) && !isFuncrefGlobal(Base))
-    return Op;
-
-  // Check Offset if undef
   const SDValue &Offset = LN->getOffset();
-  if (!Offset->isUndef())
-    return Op;
 
-  EVT VT = isExternrefGlobal(Base) ? MVT::externref : MVT::funcref;
+  if (IsWebAssemblyGlobal(Base)) {
+    if (!Offset->isUndef())
+      report_fatal_error(
+          "unexpected offset when loading from webassembly global", false);
 
-  SDValue GlobalGet = DAG.getMemIntrinsicNode(
-      WebAssemblyISD::GLOBAL_GET, DL, DAG.getVTList(VT), {LN->getChain(), Base},
-      LN->getMemoryVT(), LN->getMemOperand());
-  SDValue Result = DAG.getMergeValues({GlobalGet, LN->getChain()}, DL);
-  assert(Result->getNumValues() == 2 && "Loads must carry a chain!");
+    EVT VT = LN->getValueType(0);
+    SDValue GlobalGet = DAG.getMemIntrinsicNode(
+        WebAssemblyISD::GLOBAL_GET, DL, DAG.getVTList(VT),
+        {LN->getChain(), Base}, LN->getMemoryVT(), LN->getMemOperand());
+    return DAG.getMergeValues({GlobalGet, LN->getChain()}, DL);
+  }
 
-  return Result;
+  return Op;
 }
 
 SDValue WebAssemblyTargetLowering::LowerCopyToReg(SDValue Op,
