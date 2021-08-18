@@ -236,6 +236,8 @@ static std::string getStaticDeclName(CodeGenModule &CGM, const VarDecl &D) {
   return ContextName;
 }
 
+// FIXME: EmitNullConstant for externref / funcref
+
 llvm::Constant *CodeGenModule::getOrCreateStaticVarDecl(
     const VarDecl &D, llvm::GlobalValue::LinkageTypes Linkage) {
   // In general, we don't always emit static var decls once before we reference
@@ -284,6 +286,7 @@ llvm::Constant *CodeGenModule::getOrCreateStaticVarDecl(
   // Make sure the result is of the correct type.
   LangAS ExpectedAS = Ty.getAddressSpace();
   llvm::Constant *Addr = GV;
+  // FIXME: Cast only if needed (target-specific question).
   if (AS != ExpectedAS) {
     Addr = getTargetCodeGenInfo().performAddrSpaceCast(
         *this, GV, AS, ExpectedAS,
@@ -1416,6 +1419,7 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
   QualType Ty = D.getType();
   assert(
       Ty.getAddressSpace() == LangAS::Default ||
+      Ty.getAddressSpace() == LangAS::wasm_var ||
       (Ty.getAddressSpace() == LangAS::opencl_private && getLangOpts().OpenCL));
 
   AutoVarEmission emission(D);

@@ -4826,6 +4826,7 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
         } else if (I->hasLValue()) {
           auto LV = I->getKnownLValue();
           auto AS = LV.getAddressSpace();
+          assert(AS != LangAS::wasm_var);
 
           if (!ArgInfo.getIndirectByVal() ||
               (LV.getAlignment() < getContext().getTypeAlignInChars(I->Ty))) {

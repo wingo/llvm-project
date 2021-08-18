@@ -6992,6 +6992,11 @@ handleWebAssemblyImportNameAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   FD->addAttr(::new (S.Context) WebAssemblyImportNameAttr(S.Context, AL, Str));
 }
 
+// needed?
+static void handleWebAssemblyVarAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
+  handleSimpleAttribute<WebAssemblyVarAttr>(S, D, AL);
+}
+
 static void handleRISCVInterruptAttr(Sema &S, Decl *D,
                                      const ParsedAttr &AL) {
   // Warn about repeated attributes.

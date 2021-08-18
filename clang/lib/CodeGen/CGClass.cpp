@@ -2061,6 +2061,8 @@ void CodeGenFunction::EmitCXXConstructorCall(const CXXConstructorDecl *D,
   LangAS ThisAS = ThisType.getTypePtr()->getPointeeType().getAddressSpace();
   llvm::Value *ThisPtr = This.getPointer();
 
+  // Again, irrelevant to webassembly i think, but ok to include generic
+  // predicate.
   if (SlotAS != ThisAS) {
     unsigned TargetThisAS = getContext().getTargetAddressSpace(ThisAS);
     llvm::Type *NewType =

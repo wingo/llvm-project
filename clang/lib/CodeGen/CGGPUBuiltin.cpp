@@ -73,7 +73,6 @@ CodeGenFunction::EmitNVPTXDevicePrintfCallExpr(const CallExpr *E,
   assert(E->getBuiltinCallee() == Builtin::BIprintf);
   assert(E->getNumArgs() >= 1); // printf always has at least one arg.
 
-  const llvm::DataLayout &DL = CGM.getDataLayout();
   llvm::LLVMContext &Ctx = CGM.getLLVMContext();
 
   CallArgList Args;
