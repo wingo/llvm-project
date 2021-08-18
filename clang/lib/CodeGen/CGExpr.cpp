@@ -376,7 +376,7 @@ static Address createReferenceTemporary(CodeGenFunction &CGF,
         (Ty->isArrayType() || Ty->isRecordType()) &&
         CGF.CGM.isTypeConstant(Ty, true))
       if (auto Init = ConstantEmitter(CGF).tryEmitAbstract(Inner, Ty)) {
-        auto AS = CGF.CGM.GetGlobalConstantAddressSpace();
+        auto AS = CGF.CGM.GetGlobalConstantAddressSpace(Ty);
         auto *GV = new llvm::GlobalVariable(
             CGF.CGM.getModule(), Init->getType(), /*isConstant=*/true,
             llvm::GlobalValue::PrivateLinkage, Init, ".ref.tmp", nullptr,
@@ -385,7 +385,7 @@ static Address createReferenceTemporary(CodeGenFunction &CGF,
         CharUnits alignment = CGF.getContext().getTypeAlignInChars(Ty);
         GV->setAlignment(alignment.getAsAlign());
         llvm::Constant *C = GV;
-        if (AS != LangAS::Default)
+        if (CGF.CGM.GlobalConstantNeedsAddrSpaceCast(AS, LangAS::Default))
           C = TCG.performAddrSpaceCast(
               CGF.CGM, GV, AS, LangAS::Default,
               GV->getValueType()->getPointerTo(
