@@ -580,7 +580,7 @@ public:
 
   /// A mapping from NRVO variables to the flags used to indicate
   /// when the NRVO has been applied to this variable.
-  llvm::DenseMap<const VarDecl *, llvm::Value *> NRVOFlags;
+  llvm::DenseMap<const VarDecl *, Address> NRVOFlags;
 
   EHScopeStack EHStack;
   llvm::SmallVector<char, 256> LifetimeExtendedCleanupStack;
@@ -627,11 +627,11 @@ public:
 
   /// The exception slot.  All landing pads write the current exception pointer
   /// into this alloca.
-  llvm::Value *ExceptionSlot = nullptr;
+  Address ExceptionSlot = Address::invalid();
 
   /// The selector slot.  Under the MandatoryCleanup model, all landing pads
   /// write the current selector value into this alloca.
-  llvm::AllocaInst *EHSelectorSlot = nullptr;
+  Address EHSelectorSlot = Address::invalid();
 
   /// A stack of exception code slots. Entering an __except block pushes a slot
   /// on the stack and leaving pops one. The __exception_code() intrinsic loads
@@ -708,11 +708,11 @@ public:
 
     /// An i1 variable indicating whether or not the @finally is
     /// running for an exception.
-    llvm::AllocaInst *ForEHVar;
+    Address ForEHVar = Address::invalid();
 
     /// An i8* variable into which the exception pointer to rethrow
     /// has been saved.
-    llvm::AllocaInst *SavedExnVar;
+    Address SavedExnVar = Address::invalid();
 
   public:
     void enter(CodeGenFunction &CGF, const Stmt *Finally,
@@ -2496,54 +2496,58 @@ public:
                             TBAAAccessInfo *TBAAInfo = nullptr);
   LValue EmitLoadOfPointerLValue(Address Ptr, const PointerType *PtrTy);
 
-  /// CreateTempAlloca - This creates an alloca and inserts it into the entry
-  /// block if \p ArraySize is nullptr, otherwise inserts it at the current
-  /// insertion point of the builder. The caller is responsible for setting an
-  /// appropriate alignment on
-  /// the alloca.
+  /// CreateTempAllocaInAS - Create an alloca in \p AddressSpace with alignment
+  /// \p Align.
   ///
   /// \p ArraySize is the number of array elements to be allocated if it
-  ///    is not nullptr.
+  /// is not nullptr.
+  ///
+  /// The alloca will be inserted into the entry block if \p ArraySize is
+  /// nullptr.  Otherwise it is inserted at the current insertion point of the
+  /// builder.
+  Address CreateTempAllocaInAS(llvm::Type *Ty, CharUnits Align,
+                               LangAS AddrSpace, const Twine &Name = "tmp",
+                               llvm::Value *ArraySize = nullptr);
+
+  /// CreateTempAlloca - Create an alloca with CreateTempAllocaInAS, then cast
+  /// the result to LangAS::Default if necessary.
   ///
   /// LangAS::Default is the address space of pointers to local variables and
-  /// temporaries, as exposed in the source language. In certain
-  /// configurations, this is not the same as the alloca address space, and a
-  /// cast is needed to lift the pointer from the alloca AS into
-  /// LangAS::Default. This can happen when the target uses a restricted
-  /// address space for the stack but the source language requires
-  /// LangAS::Default to be a generic address space. The latter condition is
-  /// common for most programming languages; OpenCL is an exception in that
-  /// LangAS::Default is the private address space, which naturally maps
-  /// to the stack.
+  /// temporaries, as exposed in the source language. In certain configurations,
+  /// this is not the same as the alloca address space, and a cast is needed to
+  /// lift the pointer from the alloca AS into LangAS::Default. This can happen
+  /// when the target uses a restricted address space for the stack but the
+  /// source language requires LangAS::Default to be a generic address
+  /// space. The latter condition is common for most programming languages;
+  /// OpenCL is an exception in that LangAS::Default is the private address
+  /// space, which naturally maps to the stack.
   ///
   /// Because the address of a temporary is often exposed to the program in
   /// various ways, this function will perform the cast. The original alloca
   /// instruction is returned through \p Alloca if it is not nullptr.
   ///
-  /// The cast is not performaed in CreateTempAllocaWithoutCast. This is
-  /// more efficient if the caller knows that the address will not be exposed.
-  llvm::AllocaInst *CreateTempAlloca(llvm::Type *Ty, const Twine &Name = "tmp",
-                                     llvm::Value *ArraySize = nullptr);
-  Address CreateTempAlloca(llvm::Type *Ty, CharUnits align,
+  /// If the caller knows that the address will not be exposed, it is more
+  /// efficient to use CreateTempAllocaInAS instead, to avoid any unneeded
+  /// addrspace casts.
+  Address CreateTempAlloca(llvm::Type *Ty, CharUnits Align,
                            const Twine &Name = "tmp",
                            llvm::Value *ArraySize = nullptr,
                            Address *Alloca = nullptr);
-  Address CreateTempAllocaWithoutCast(llvm::Type *Ty, CharUnits align,
-                                      const Twine &Name = "tmp",
-                                      llvm::Value *ArraySize = nullptr);
 
-  /// CreateDefaultAlignedTempAlloca - This creates an alloca with the
-  /// default ABI alignment of the given LLVM type.
+  /// PreferredAlignmentForIRType - Return the preferred alignment for the IR
+  /// type \p Ty.
   ///
-  /// IMPORTANT NOTE: This is *not* generally the right alignment for
-  /// any given AST type that happens to have been lowered to the
-  /// given IR type.  This should only ever be used for function-local,
-  /// IR-driven manipulations like saving and restoring a value.  Do
-  /// not hand this address off to arbitrary IRGen routines, and especially
-  /// do not pass it as an argument to a function that might expect a
-  /// properly ABI-aligned value.
-  Address CreateDefaultAlignTempAlloca(llvm::Type *Ty,
-                                       const Twine &Name = "tmp");
+  /// IMPORTANT NOTE: This is *not* generally the right alignment for any given
+  /// AST type that happens to have been lowered to the given IR type.  This
+  /// should only ever be used for allocating function-local values used in
+  /// IR-driven manipulations like saving and restoring a value.  Do not use
+  /// this alignment for allocating arbitrary IRGen routines, and especially do
+  /// not use it to allocate values that might be passed to functions that
+  /// expect a properly ABI-aligned value.
+  CharUnits PreferredAlignmentForIRType(llvm::Type *Ty) {
+    return CharUnits::fromQuantity(
+        CGM.getDataLayout().getPrefTypeAlignment(Ty));
+  }
 
   /// InitTempAlloca - Provide an initial value for the given alloca which
   /// will be observable at all locations in the function.
@@ -3030,7 +3034,7 @@ public:
     /// as a global constant.
     Address Addr;
 
-    llvm::Value *NRVOFlag;
+    Address NRVOFlag;
 
     /// True if the variable is a __block variable that is captured by an
     /// escaping block.
@@ -3050,12 +3054,13 @@ public:
     struct Invalid {};
     AutoVarEmission(Invalid)
         : Variable(nullptr), Addr(Address::invalid()),
-          AllocaAddr(Address::invalid()) {}
+          NRVOFlag(Address::invalid()), AllocaAddr(Address::invalid()) {}
 
     AutoVarEmission(const VarDecl &variable)
-        : Variable(&variable), Addr(Address::invalid()), NRVOFlag(nullptr),
-          IsEscapingByRef(false), IsConstantAggregate(false),
-          SizeForLifetimeMarkers(nullptr), AllocaAddr(Address::invalid()) {}
+        : Variable(&variable), Addr(Address::invalid()),
+          NRVOFlag(Address::invalid()), IsEscapingByRef(false),
+          IsConstantAggregate(false), SizeForLifetimeMarkers(nullptr),
+          AllocaAddr(Address::invalid()) {}
 
     bool wasEmittedAsGlobal() const { return !Addr.isValid(); }
 

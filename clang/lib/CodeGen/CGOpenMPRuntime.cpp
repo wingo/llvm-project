@@ -2109,9 +2109,9 @@ void CGOpenMPRuntime::emitParallelCall(CodeGenFunction &CGF, SourceLocation Loc,
 
     // OutlinedFn(&GTid, &zero_bound, CapturedStruct);
     Address ThreadIDAddr = RT.emitThreadIDAddress(CGF, Loc);
-    Address ZeroAddrBound =
-        CGF.CreateDefaultAlignTempAlloca(CGF.Int32Ty,
-                                         /*Name=*/".bound.zero.addr");
+    CharUnits Align = CGF.PreferredAlignmentForIRType(CGF.Int32Ty);
+    Address ZeroAddrBound = CGF.CreateTempAlloca(
+        CGF.Int32Ty, Align, /*Name=*/".bound.zero.addr");
     CGF.InitTempAlloca(ZeroAddrBound, CGF.Builder.getInt32(/*C*/ 0));
     llvm::SmallVector<llvm::Value *, 16> OutlinedFnArgs;
     // ThreadId for serialized parallels is 0.

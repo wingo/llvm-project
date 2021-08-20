@@ -979,7 +979,8 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
   // If we're checking the return value, allocate space for a pointer to a
   // precise source location of the checked return statement.
   if (requiresReturnValueCheck()) {
-    ReturnLocation = CreateDefaultAlignTempAlloca(Int8PtrTy, "return.sloc.ptr");
+    CharUnits Align = PreferredAlignmentForIRType(Int8PtrTy);
+    ReturnLocation = CreateTempAlloca(Int8PtrTy, Align, "return.sloc.ptr");
     InitTempAlloca(ReturnLocation, llvm::ConstantPointerNull::get(Int8PtrTy));
   }
 
@@ -1069,8 +1070,8 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
       ++AI;
     ReturnValue = Address(&*AI, CurFnInfo->getReturnInfo().getIndirectAlign());
     if (!CurFnInfo->getReturnInfo().getIndirectByVal()) {
-      ReturnValuePointer =
-          CreateDefaultAlignTempAlloca(Int8PtrTy, "result.ptr");
+      CharUnits Align = PreferredAlignmentForIRType(Int8PtrTy);
+      ReturnValuePointer = CreateTempAlloca(Int8PtrTy, Align, "result.ptr");
       Builder.CreateStore(Builder.CreatePointerBitCastOrAddrSpaceCast(
                               ReturnValue.getPointer(), Int8PtrTy),
                           ReturnValuePointer);

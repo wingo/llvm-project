@@ -2122,7 +2122,8 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
          isa<llvm::ScalableVectorType>(DstTy)) ||
         (isa<llvm::ScalableVectorType>(SrcTy) &&
          isa<llvm::FixedVectorType>(DstTy))) {
-      Address Addr = CGF.CreateDefaultAlignTempAlloca(SrcTy, "saved-value");
+      CharUnits Align = CGF.PreferredAlignmentForIRType(SrcTy);
+      Address Addr = CGF.CreateTempAlloca(SrcTy, Align, "saved-value");
       LValue LV = CGF.MakeAddrLValue(Addr, E->getType());
       CGF.EmitStoreOfScalar(Src, LV);
       Addr = Builder.CreateElementBitCast(Addr, CGF.ConvertTypeForMem(DestTy),

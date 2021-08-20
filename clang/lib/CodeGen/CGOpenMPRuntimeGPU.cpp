@@ -1491,8 +1491,9 @@ void CGOpenMPRuntimeGPU::emitTeamsCall(CodeGenFunction &CGF,
   if (!CGF.HaveInsertPoint())
     return;
 
-  Address ZeroAddr = CGF.CreateDefaultAlignTempAlloca(CGF.Int32Ty,
-                                                      /*Name=*/".zero.addr");
+  Address ZeroAddr = CGF.CreateTempAlloca(
+      CGF.Int32Ty, CGF.PreferredAlignmentForIRType(CGF.Int32Ty),
+      /*Name=*/".zero.addr");
   CGF.InitTempAlloca(ZeroAddr, CGF.Builder.getInt32(/*C*/ 0));
   llvm::SmallVector<llvm::Value *, 16> OutlinedFnArgs;
   OutlinedFnArgs.push_back(emitThreadIDAddress(CGF, Loc).getPointer());
@@ -1523,8 +1524,10 @@ void CGOpenMPRuntimeGPU::emitParallelCall(CodeGenFunction &CGF,
     // TODO: Is that needed?
     CodeGenFunction::OMPPrivateScope PrivateArgScope(CGF);
 
-    Address CapturedVarsAddrs = CGF.CreateDefaultAlignTempAlloca(
-        llvm::ArrayType::get(CGM.VoidPtrTy, CapturedVars.size()),
+    llvm::Type *VarsTy =
+        llvm::ArrayType::get(CGM.VoidPtrTy, CapturedVars.size());
+    Address CapturedVarsAddrs = CGF.CreateTempAlloca(
+        VarsTy, CGF.PreferredAlignmentForIRType(VarsTy),
         "captured_vars_addrs");
     // There's something to share.
     if (!CapturedVars.empty()) {
@@ -3479,8 +3482,9 @@ llvm::Function *CGOpenMPRuntimeGPU::createParallelDataSharingWrapper(
   const auto *RD = CS.getCapturedRecordDecl();
   auto CurField = RD->field_begin();
 
-  Address ZeroAddr = CGF.CreateDefaultAlignTempAlloca(CGF.Int32Ty,
-                                                      /*Name=*/".zero.addr");
+  Address ZeroAddr = CGF.CreateTempAlloca(
+      CGF.Int32Ty, CGF.PreferredAlignmentForIRType(CGF.Int32Ty),
+      /*Name=*/".zero.addr");
   CGF.InitTempAlloca(ZeroAddr, CGF.Builder.getInt32(/*C*/ 0));
   // Get the array of arguments.
   SmallVector<llvm::Value *, 8> Args;
@@ -3493,8 +3497,9 @@ llvm::Function *CGOpenMPRuntimeGPU::createParallelDataSharingWrapper(
 
   // Use global memory for data sharing.
   // Handle passing of global args to workers.
-  Address GlobalArgs =
-      CGF.CreateDefaultAlignTempAlloca(CGF.VoidPtrPtrTy, "global_args");
+  Address GlobalArgs = CGF.CreateTempAlloca(
+      CGF.VoidPtrPtrTy, CGF.PreferredAlignmentForIRType(CGF.VoidPtrPtrTy),
+      "global_args");
   llvm::Value *GlobalArgsPtr = GlobalArgs.getPointer();
   llvm::Value *DataSharingArgs[] = {GlobalArgsPtr};
   CGF.EmitRuntimeCall(OMPBuilder.getOrCreateRuntimeFunction(

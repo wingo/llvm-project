@@ -63,68 +63,50 @@ llvm::Value *CodeGenFunction::EmitCastToVoidPtr(llvm::Value *value) {
   return Builder.CreateBitCast(value, destType);
 }
 
-/// CreateTempAlloca - This creates a alloca and inserts it into the entry
-/// block.
-Address CodeGenFunction::CreateTempAllocaWithoutCast(llvm::Type *Ty,
-                                                     CharUnits Align,
-                                                     const Twine &Name,
-                                                     llvm::Value *ArraySize) {
-  auto Alloca = CreateTempAlloca(Ty, Name, ArraySize);
+/// CreateTempAllocaInAS - Create an alloca in \p AddressSpace with alignment \p
+/// Align.  Leave the result in \p AddressSpace.
+Address CodeGenFunction::CreateTempAllocaInAS(llvm::Type *Ty, CharUnits Align,
+                                              LangAS AddressSpace,
+                                              const Twine &Name,
+                                              llvm::Value *ArraySize) {
+  auto AS = getContext().getTargetAddressSpace(AddressSpace);
+  llvm::AllocaInst *Alloca =
+      ArraySize ? Builder.CreateAlloca(Ty, AS, ArraySize, Name)
+                : new llvm::AllocaInst(Ty, AS, ArraySize, Name, AllocaInsertPt);
   Alloca->setAlignment(Align.getAsAlign());
   return Address(Alloca, Align);
 }
 
-/// CreateTempAlloca - This creates a alloca and inserts it into the entry
-/// block. The alloca is casted to default address space if necessary.
+/// CreateTempAlloca - Create an alloca as with CreateTempAllocaInAS, then cast
+/// the result to LangAS::Default if necessary.
 Address CodeGenFunction::CreateTempAlloca(llvm::Type *Ty, CharUnits Align,
                                           const Twine &Name,
                                           llvm::Value *ArraySize,
                                           Address *AllocaAddr) {
-  auto Alloca = CreateTempAllocaWithoutCast(Ty, Align, Name, ArraySize);
+  LangAS AddressSpace = getASTAllocaAddressSpace();
+  auto Alloca = CreateTempAllocaInAS(Ty, Align, AddressSpace, Name, ArraySize);
   if (AllocaAddr)
     *AllocaAddr = Alloca;
   llvm::Value *V = Alloca.getPointer();
-  // Alloca always returns a pointer in alloca address space, which may
-  // be different from the type defined by the language. For example,
-  // in C++ the auto variables are in the default address space. Therefore
-  // cast alloca to the default address space when necessary.
-  if (getASTAllocaAddressSpace() != LangAS::Default) {
-    auto DestAddrSpace = getContext().getTargetAddressSpace(LangAS::Default);
+
+  // Alloca returns a pointer in the specified address space, which may be
+  // different from the type defined by the language. For example, in C++, auto
+  // variables are in the default address space. Therefore cast alloca to the
+  // default address space when necessary.
+  if (AddressSpace != LangAS::Default) {
     llvm::IRBuilderBase::InsertPointGuard IPG(Builder);
     // When ArraySize is nullptr, alloca is inserted at AllocaInsertPt,
     // otherwise alloca is inserted at the current insertion point of the
     // builder.
     if (!ArraySize)
       Builder.SetInsertPoint(AllocaInsertPt);
+    llvm::Type *DestTy =
+        Ty->getPointerTo(getContext().getTargetAddressSpace(LangAS::Default));
     V = getTargetHooks().performAddrSpaceCast(
-        *this, V, getASTAllocaAddressSpace(), LangAS::Default,
-        Ty->getPointerTo(DestAddrSpace), /*non-null*/ true);
+        *this, V, AddressSpace, LangAS::Default, DestTy, /*non-null*/ true);
   }
 
   return Address(V, Align);
-}
-
-/// CreateTempAlloca - This creates an alloca and inserts it into the entry
-/// block if \p ArraySize is nullptr, otherwise inserts it at the current
-/// insertion point of the builder.
-llvm::AllocaInst *CodeGenFunction::CreateTempAlloca(llvm::Type *Ty,
-                                                    const Twine &Name,
-                                                    llvm::Value *ArraySize) {
-  if (ArraySize)
-    return Builder.CreateAlloca(Ty, ArraySize, Name);
-  return new llvm::AllocaInst(Ty, CGM.getDataLayout().getAllocaAddrSpace(),
-                              ArraySize, Name, AllocaInsertPt);
-}
-
-/// CreateDefaultAlignTempAlloca - This creates an alloca with the
-/// default alignment of the corresponding LLVM type, which is *not*
-/// guaranteed to be related in any way to the expected alignment of
-/// an AST type that might have been lowered to Ty.
-Address CodeGenFunction::CreateDefaultAlignTempAlloca(llvm::Type *Ty,
-                                                      const Twine &Name) {
-  CharUnits Align =
-      CharUnits::fromQuantity(CGM.getDataLayout().getPrefTypeAlignment(Ty));
-  return CreateTempAlloca(Ty, Align, Name);
 }
 
 void CodeGenFunction::InitTempAlloca(Address Var, llvm::Value *Init) {
@@ -170,7 +152,8 @@ Address CodeGenFunction::CreateMemTemp(QualType Ty, CharUnits Align,
 
 Address CodeGenFunction::CreateMemTempWithoutCast(QualType Ty, CharUnits Align,
                                                   const Twine &Name) {
-  return CreateTempAllocaWithoutCast(ConvertTypeForMem(Ty), Align, Name);
+  LangAS AS = getASTAllocaAddressSpace();
+  return CreateTempAllocaInAS(ConvertTypeForMem(Ty), Align, AS, Name);
 }
 
 Address CodeGenFunction::CreateMemTempWithoutCast(QualType Ty,
@@ -3058,7 +3041,8 @@ llvm::Value *CodeGenFunction::EmitCheckValue(llvm::Value *V) {
 
   // Pointers are passed directly, everything else is passed by address.
   if (!V->getType()->isPointerTy()) {
-    Address Ptr = CreateDefaultAlignTempAlloca(V->getType());
+    auto Align = PreferredAlignmentForIRType(V->getType());
+    Address Ptr = CreateTempAlloca(V->getType(), Align);
     Builder.CreateStore(V, Ptr);
     V = Ptr.getPointer();
   }

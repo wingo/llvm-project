@@ -496,24 +496,23 @@ namespace {
 
   template <class Derived>
   struct DestroyNRVOVariable : EHScopeStack::Cleanup {
-    DestroyNRVOVariable(Address addr, QualType type, llvm::Value *NRVOFlag)
+    DestroyNRVOVariable(Address addr, QualType type, Address NRVOFlag)
         : NRVOFlag(NRVOFlag), Loc(addr), Ty(type) {}
 
-    llvm::Value *NRVOFlag;
+    Address NRVOFlag;
     Address Loc;
     QualType Ty;
 
     void Emit(CodeGenFunction &CGF, Flags flags) override {
       // Along the exceptions path we always execute the dtor.
-      bool NRVO = flags.isForNormalCleanup() && NRVOFlag;
+      bool NRVO = flags.isForNormalCleanup() && NRVOFlag.isValid();
 
       llvm::BasicBlock *SkipDtorBB = nullptr;
       if (NRVO) {
         // If we exited via NRVO, we skip the destructor call.
         llvm::BasicBlock *RunDtorBB = CGF.createBasicBlock("nrvo.unused");
         SkipDtorBB = CGF.createBasicBlock("nrvo.skipdtor");
-        llvm::Value *DidNRVO =
-          CGF.Builder.CreateFlagLoad(NRVOFlag, "nrvo.val");
+        llvm::Value *DidNRVO = CGF.Builder.CreateLoad(NRVOFlag, "nrvo.val");
         CGF.Builder.CreateCondBr(DidNRVO, SkipDtorBB, RunDtorBB);
         CGF.EmitBlock(RunDtorBB);
       }
@@ -529,7 +528,7 @@ namespace {
   struct DestroyNRVOVariableCXX final
       : DestroyNRVOVariable<DestroyNRVOVariableCXX> {
     DestroyNRVOVariableCXX(Address addr, QualType type,
-                           const CXXDestructorDecl *Dtor, llvm::Value *NRVOFlag)
+                           const CXXDestructorDecl *Dtor, Address NRVOFlag)
         : DestroyNRVOVariable<DestroyNRVOVariableCXX>(addr, type, NRVOFlag),
           Dtor(Dtor) {}
 
@@ -544,7 +543,7 @@ namespace {
 
   struct DestroyNRVOVariableC final
       : DestroyNRVOVariable<DestroyNRVOVariableC> {
-    DestroyNRVOVariableC(Address addr, llvm::Value *NRVOFlag, QualType Ty)
+    DestroyNRVOVariableC(Address addr, Address NRVOFlag, QualType Ty)
         : DestroyNRVOVariable<DestroyNRVOVariableC>(addr, Ty, NRVOFlag) {}
 
     void emitDestructorCall(CodeGenFunction &CGF) {
@@ -1369,8 +1368,9 @@ void CodeGenFunction::EmitAndRegisterVariableArrayDimensions(
       StringRef NameRef = Name.toStringRef(Buffer);
       auto &Ident = getContext().Idents.getOwn(NameRef);
       VLAExprNames.push_back(&Ident);
-      auto SizeExprAddr =
-          CreateDefaultAlignTempAlloca(VlaSize.NumElts->getType(), NameRef);
+      llvm::Type *Ty = VlaSize.NumElts->getType();
+      CharUnits Align = PreferredAlignmentForIRType(Ty);
+      auto SizeExprAddr = CreateTempAlloca(Ty, Align, NameRef);
       Builder.CreateStore(VlaSize.NumElts, SizeExprAddr);
       Dimensions.emplace_back(SizeExprAddr.getPointer(),
                               Type1D.getUnqualifiedType());
@@ -1508,8 +1508,8 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
           Builder.CreateStore(Zero, NRVOFlag);
 
           // Record the NRVO flag for this variable.
-          NRVOFlags[&D] = NRVOFlag.getPointer();
-          emission.NRVOFlag = NRVOFlag.getPointer();
+          NRVOFlags.insert(std::make_pair(&D, NRVOFlag));
+          emission.NRVOFlag = NRVOFlag;
         }
       }
     } else {
@@ -1983,7 +1983,7 @@ void CodeGenFunction::emitAutoVarTypeCleanup(
   case QualType::DK_cxx_destructor:
     // If there's an NRVO flag on the emission, we need a different
     // cleanup.
-    if (emission.NRVOFlag) {
+    if (emission.NRVOFlag.isValid()) {
       assert(!type->isArrayType());
       CXXDestructorDecl *dtor = type->getAsCXXRecordDecl()->getDestructor();
       EHStack.pushCleanup<DestroyNRVOVariableCXX>(cleanupKind, addr, type, dtor,
@@ -2009,7 +2009,7 @@ void CodeGenFunction::emitAutoVarTypeCleanup(
 
   case QualType::DK_nontrivial_c_struct:
     destroyer = CodeGenFunction::destroyNonTrivialCStruct;
-    if (emission.NRVOFlag) {
+    if (emission.NRVOFlag.isValid()) {
       assert(!type->isArrayType());
       EHStack.pushCleanup<DestroyNRVOVariableC>(cleanupKind, addr,
                                                 emission.NRVOFlag, type);

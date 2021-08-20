@@ -419,15 +419,22 @@ void CodeGenFunction::EmitAnyExprToExn(const Expr *e, Address addr) {
 }
 
 Address CodeGenFunction::getExceptionSlot() {
-  if (!ExceptionSlot)
-    ExceptionSlot = CreateTempAlloca(Int8PtrTy, "exn.slot");
-  return Address(ExceptionSlot, getPointerAlign());
+  if (!ExceptionSlot.isValid()) {
+    CharUnits Align = getPointerAlign();
+    LangAS AS = getASTAllocaAddressSpace();
+    ExceptionSlot = CreateTempAllocaInAS(Int8PtrTy, Align, AS, "exn.slot");
+  }
+  return ExceptionSlot;
 }
 
 Address CodeGenFunction::getEHSelectorSlot() {
-  if (!EHSelectorSlot)
-    EHSelectorSlot = CreateTempAlloca(Int32Ty, "ehselector.slot");
-  return Address(EHSelectorSlot, CharUnits::fromQuantity(4));
+  if (!EHSelectorSlot.isValid()) {
+    CharUnits Align = CharUnits::fromQuantity(4);
+    LangAS AS = getASTAllocaAddressSpace();
+    EHSelectorSlot =
+        CreateTempAllocaInAS(Int32Ty, Align, AS, "ehselector.slot");
+  }
+  return EHSelectorSlot;
 }
 
 llvm::Value *CodeGenFunction::getExceptionFromSlot() {
@@ -1313,10 +1320,9 @@ void CodeGenFunction::ExitCXXTryStmt(const CXXTryStmt &S, bool IsFnTryBlock) {
 
 namespace {
   struct CallEndCatchForFinally final : EHScopeStack::Cleanup {
-    llvm::Value *ForEHVar;
+    Address ForEHVar;
     llvm::FunctionCallee EndCatchFn;
-    CallEndCatchForFinally(llvm::Value *ForEHVar,
-                           llvm::FunctionCallee EndCatchFn)
+    CallEndCatchForFinally(Address ForEHVar, llvm::FunctionCallee EndCatchFn)
         : ForEHVar(ForEHVar), EndCatchFn(EndCatchFn) {}
 
     void Emit(CodeGenFunction &CGF, Flags flags) override {
@@ -1325,7 +1331,7 @@ namespace {
         CGF.createBasicBlock("finally.cleanup.cont");
 
       llvm::Value *ShouldEndCatch =
-        CGF.Builder.CreateFlagLoad(ForEHVar, "finally.endcatch");
+          CGF.Builder.CreateLoad(ForEHVar, "finally.endcatch");
       CGF.Builder.CreateCondBr(ShouldEndCatch, EndCatchBB, CleanupContBB);
       CGF.EmitBlock(EndCatchBB);
       CGF.EmitRuntimeCallOrInvoke(EndCatchFn); // catch-all, so might throw
@@ -1335,14 +1341,14 @@ namespace {
 
   struct PerformFinally final : EHScopeStack::Cleanup {
     const Stmt *Body;
-    llvm::Value *ForEHVar;
+    Address ForEHVar;
     llvm::FunctionCallee EndCatchFn;
     llvm::FunctionCallee RethrowFn;
-    llvm::Value *SavedExnVar;
+    Address SavedExnVar;
 
-    PerformFinally(const Stmt *Body, llvm::Value *ForEHVar,
+    PerformFinally(const Stmt *Body, Address ForEHVar,
                    llvm::FunctionCallee EndCatchFn,
-                   llvm::FunctionCallee RethrowFn, llvm::Value *SavedExnVar)
+                   llvm::FunctionCallee RethrowFn, Address SavedExnVar)
         : Body(Body), ForEHVar(ForEHVar), EndCatchFn(EndCatchFn),
           RethrowFn(RethrowFn), SavedExnVar(SavedExnVar) {}
 
@@ -1368,14 +1374,13 @@ namespace {
         llvm::BasicBlock *ContBB = CGF.createBasicBlock("finally.cont");
 
         llvm::Value *ShouldRethrow =
-          CGF.Builder.CreateFlagLoad(ForEHVar, "finally.shouldthrow");
+            CGF.Builder.CreateLoad(ForEHVar, "finally.shouldthrow");
         CGF.Builder.CreateCondBr(ShouldRethrow, RethrowBB, ContBB);
 
         CGF.EmitBlock(RethrowBB);
-        if (SavedExnVar) {
+        if (SavedExnVar.isValid()) {
           CGF.EmitRuntimeCallOrInvoke(RethrowFn,
-            CGF.Builder.CreateAlignedLoad(CGF.Int8PtrTy, SavedExnVar,
-                                          CGF.getPointerAlign()));
+                                      CGF.Builder.CreateLoad(SavedExnVar));
         } else {
           CGF.EmitRuntimeCallOrInvoke(RethrowFn);
         }
@@ -1424,9 +1429,13 @@ void CodeGenFunction::FinallyInfo::enter(CodeGenFunction &CGF, const Stmt *body,
   // But we can't use the exception slot because the @finally might
   // have a landing pad (which would overwrite the exception slot).
   llvm::FunctionType *rethrowFnTy = rethrowFn.getFunctionType();
-  SavedExnVar = nullptr;
-  if (rethrowFnTy->getNumParams())
-    SavedExnVar = CGF.CreateTempAlloca(CGF.Int8PtrTy, "finally.exn");
+  SavedExnVar = Address::invalid();
+  if (rethrowFnTy->getNumParams()) {
+    CharUnits Align = CGF.getPointerAlign();
+    LangAS AS = CGF.getASTAllocaAddressSpace();
+    SavedExnVar =
+        CGF.CreateTempAllocaInAS(CGF.Int8PtrTy, Align, AS, "finally.exn");
+  }
 
   // A finally block is a statement which must be executed on any edge
   // out of a given scope.  Unlike a cleanup, the finally block may
@@ -1446,8 +1455,11 @@ void CodeGenFunction::FinallyInfo::enter(CodeGenFunction &CGF, const Stmt *body,
   RethrowDest = CGF.getJumpDestInCurrentScope(CGF.getUnreachableBlock());
 
   // Whether the finally block is being executed for EH purposes.
-  ForEHVar = CGF.CreateTempAlloca(CGF.Builder.getInt1Ty(), "finally.for-eh");
-  CGF.Builder.CreateFlagStore(false, ForEHVar);
+  llvm::Type *FlagTy = CGF.Builder.getInt1Ty();
+  ForEHVar = CGF.CreateTempAllocaInAS(
+      FlagTy, CGF.PreferredAlignmentForIRType(FlagTy),
+      CGF.getASTAllocaAddressSpace(), "finally.for-eh");
+  CGF.Builder.CreateStore(CGF.Builder.getFalse(), ForEHVar);
 
   // Enter a normal cleanup which will perform the @finally block.
   CGF.EHStack.pushCleanup<PerformFinally>(NormalCleanup, body,
@@ -1483,13 +1495,14 @@ void CodeGenFunction::FinallyInfo::exit(CodeGenFunction &CGF) {
     }
 
     // If we need to remember the exception pointer to rethrow later, do so.
-    if (SavedExnVar) {
-      if (!exn) exn = CGF.getExceptionFromSlot();
-      CGF.Builder.CreateAlignedStore(exn, SavedExnVar, CGF.getPointerAlign());
+    if (SavedExnVar.isValid()) {
+      if (!exn)
+        exn = CGF.getExceptionFromSlot();
+      CGF.Builder.CreateStore(exn, SavedExnVar);
     }
 
     // Tell the cleanups in the finally block that we're do this for EH.
-    CGF.Builder.CreateFlagStore(true, ForEHVar);
+    CGF.Builder.CreateStore(CGF.Builder.getTrue(), ForEHVar);
 
     // Thread a jump through the finally cleanup.
     CGF.EmitBranchThroughCleanup(RethrowDest);
