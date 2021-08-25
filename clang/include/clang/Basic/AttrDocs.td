@@ -5208,6 +5208,31 @@ request a specific field name be used instead.
   }];
 }
 
+def WebAssemblyReferenceTypeDocs : Documentation {
+  let Category = DocCatType;
+  let Content = [{
+The ``reference_type`` attribute on a type indicates that instances of this
+type are references to host-managed values, for example the ``externref_t`
+and ``funcref_t`` WebAssembly types.  These values have no byte
+representation and can't be stored to linear memory; instead, Clang will
+arrange to allocate host-managed storage locations for reference-typed
+variables.
+
+Instances of ``reference_type`` types come with some restrictions.
+Their address cannot be taken; they can only be read or written
+"directly".
+
+.. code-block:: c
+  struct {
+    int a, b;
+  } __attribute__((reference_type)) y;
+  y.a = 42;
+  &y;    // Error.
+Note that the built-in ``externref_t`` and ``funcref_t`` types carry this
+attribute implicitly.
+  }];
+}
+
 def ArtificialDocs : Documentation {
   let Category = DocCatFunction;
   let Content = [{

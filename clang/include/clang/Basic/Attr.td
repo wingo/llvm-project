@@ -1867,6 +1867,12 @@ def WebAssemblyImportName : InheritableAttr,
   let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
+def WebAssemblyReferenceType : TypeAttr,
+                               TargetSpecificAttr<TargetWebAssembly> {
+  let Spellings = [Clang<"reference_type">];
+  let Documentation = [WebAssemblyReferenceTypeDocs];
+}
+
 def NoSplitStack : InheritableAttr {
   let Spellings = [GCC<"no_split_stack">];
   let Subjects = SubjectList<[Function], ErrorDiag>;

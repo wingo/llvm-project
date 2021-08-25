@@ -6580,6 +6580,20 @@ static void HandleAddressSpaceTypeAttribute(QualType &Type,
   }
 }
 
+/// HandleWebAssemblyReferenceTypeAttributeAttribute - Process reference_type
+/// attribute on a type.  Initially we should restrict this to externref and
+/// funcref types.
+static void HandleWebAssemblyReferenceTypeAttribute(QualType &Type,
+                                                    ParsedAttr &PAttr,
+                                                    TypeProcessingState &State) {
+  Sema &S = State.getSema();
+  Attr *A = createSimpleAttr<WebAssemblyReferenceTypeAttr>(S.Context, PAttr);
+  QualType OrigType = Type;
+  Type = State.getAttributedType(A, OrigType, Type);
+
+  // FIXME: Restrict to externref_t / funcref_t.
+}
+
 /// handleObjCOwnershipTypeAttr - Process an objc_ownership
 /// attribute on the specified type.
 ///
@@ -8141,6 +8155,10 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
     case ParsedAttr::AT_OpenCLGenericAddressSpace:
     case ParsedAttr::AT_AddressSpace:
       HandleAddressSpaceTypeAttribute(type, attr, state);
+      attr.setUsedAsTypeAttr();
+      break;
+    case ParsedAttr::AT_WebAssemblyReferenceType:
+      HandleWebAssemblyReferenceTypeAttribute(type, attr, state);
       attr.setUsedAsTypeAttr();
       break;
     OBJC_POINTER_TYPE_ATTRS_CASELIST:

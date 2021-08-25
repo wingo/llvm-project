@@ -2141,6 +2141,11 @@ public:
   /// Check if the type is the CUDA device builtin texture type.
   bool isCUDADeviceBuiltinTextureType() const;
 
+  // Check if this type has the "reference_type" attribute.
+  bool isWebAssemblyReferenceType() const {
+    return hasAttr(attr::WebAssemblyReferenceType);
+  }
+
   /// Return the implicit lifetime for this type, which must not be dependent.
   Qualifiers::ObjCLifetime getObjCARCImplicitLifetime() const;
 

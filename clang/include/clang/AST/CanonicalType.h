@@ -312,6 +312,7 @@ public:
   LLVM_CLANG_CANPROXY_SIMPLE_ACCESSOR(bool, isUnsignedIntegerOrEnumerationType)
   LLVM_CLANG_CANPROXY_SIMPLE_ACCESSOR(bool, isConstantSizeType)
   LLVM_CLANG_CANPROXY_SIMPLE_ACCESSOR(bool, isSpecifierType)
+  LLVM_CLANG_CANPROXY_SIMPLE_ACCESSOR(bool, isWebAssemblyReferenceType)
   LLVM_CLANG_CANPROXY_SIMPLE_ACCESSOR(CXXRecordDecl*, getAsCXXRecordDecl)
 
   /// Retrieve the proxy-adaptor type.
