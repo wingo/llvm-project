@@ -150,18 +150,6 @@ Address CodeGenFunction::CreateMemTemp(QualType Ty, CharUnits Align,
   return Result;
 }
 
-Address CodeGenFunction::CreateMemTempWithoutCast(QualType Ty, CharUnits Align,
-                                                  const Twine &Name) {
-  LangAS AS = getASTAllocaAddressSpace();
-  return CreateTempAllocaInAS(ConvertTypeForMem(Ty), Align, AS, Name);
-}
-
-Address CodeGenFunction::CreateMemTempWithoutCast(QualType Ty,
-                                                  const Twine &Name) {
-  return CreateMemTempWithoutCast(Ty, getContext().getTypeAlignInChars(Ty),
-                                  Name);
-}
-
 /// EvaluateExprAsBool - Perform the usual unary conversions on the specified
 /// expression and compare the result against zero, returning an Int1Ty value.
 llvm::Value *CodeGenFunction::EvaluateExprAsBool(const Expr *E) {

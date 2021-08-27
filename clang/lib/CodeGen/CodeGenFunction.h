@@ -2576,12 +2576,6 @@ public:
   Address CreateMemTemp(QualType T, CharUnits Align, const Twine &Name = "tmp",
                         Address *Alloca = nullptr);
 
-  /// CreateMemTemp - Create a temporary memory object of the given type, with
-  /// appropriate alignmen without casting it to the default address space.
-  Address CreateMemTempWithoutCast(QualType T, const Twine &Name = "tmp");
-  Address CreateMemTempWithoutCast(QualType T, CharUnits Align,
-                                   const Twine &Name = "tmp");
-
   /// CreateAggTemp - Create a temporary memory object for the given
   /// aggregate type.
   AggValueSlot CreateAggTemp(QualType T, const Twine &Name = "tmp",

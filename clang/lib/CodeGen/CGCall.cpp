@@ -4760,9 +4760,10 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
       } else if (ArgInfo.getInAllocaIndirect()) {
         // Make a temporary alloca and store the address of it into the argument
         // struct.
-        Address Addr = CreateMemTempWithoutCast(
-            I->Ty, getContext().getTypeAlignInChars(I->Ty),
-            "indirect-arg-temp");
+        llvm::Type *Ty = ConvertTypeForMem(I->Ty);
+        CharUnits Align = getContext().getTypeAlignInChars(I->Ty);
+        LangAS AS = CGM.getDefaultAllocaAddressSpace();
+        Address Addr = CreateTempAllocaInAS(Ty, Align, AS, "indirect-arg-temp");
         I->copyInto(*this, Addr);
         Address ArgSlot =
             Builder.CreateStructGEP(ArgMemory, ArgInfo.getInAllocaFieldIndex());
@@ -4788,8 +4789,10 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
       assert(NumIRArgs == 1);
       if (!I->isAggregate()) {
         // Make a temporary alloca to pass the argument.
-        Address Addr = CreateMemTempWithoutCast(
-            I->Ty, ArgInfo.getIndirectAlign(), "indirect-arg-temp");
+        llvm::Type *Ty = ConvertTypeForMem(I->Ty);
+        CharUnits Align = ArgInfo.getIndirectAlign();
+        LangAS AS = CGM.getDefaultAllocaAddressSpace();
+        Address Addr = CreateTempAllocaInAS(Ty, Align, AS, "indirect-arg-temp");
         IRCallArgs[FirstIRArg] = Addr.getPointer();
 
         I->copyInto(*this, Addr);
@@ -4846,8 +4849,10 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
 
         if (NeedCopy) {
           // Create an aligned temporary, and copy to it.
-          Address AI = CreateMemTempWithoutCast(
-              I->Ty, ArgInfo.getIndirectAlign(), "byval-temp");
+          llvm::Type *Ty = ConvertTypeForMem(I->Ty);
+          CharUnits Align = ArgInfo.getIndirectAlign();
+          LangAS AS = CGM.getDefaultAllocaAddressSpace();
+          Address AI = CreateTempAllocaInAS(Ty, Align, AS, "byval-temp");
           IRCallArgs[FirstIRArg] = AI.getPointer();
 
           // Emit lifetime markers for the temporary alloca.
