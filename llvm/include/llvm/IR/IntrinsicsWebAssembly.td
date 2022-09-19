@@ -29,15 +29,9 @@ def int_wasm_memory_grow : Intrinsic<[llvm_anyint_ty],
 //===----------------------------------------------------------------------===//
 // ref.null intrinsics
 //===----------------------------------------------------------------------===//
-def int_wasm_ref_null_extern : Intrinsic<[llvm_externref_ty], [], [IntrNoMem]>;
-def int_wasm_ref_null_func : Intrinsic<[llvm_funcref_ty], [], [IntrNoMem]>;
 def int_wasm_ref_null : Intrinsic<[llvm_wasmref_ty], [llvm_i32_ty], [IntrNoMem, ImmArg<ArgIndex<0>>]>;
 def int_wasm_ref_is_null : Intrinsic<[llvm_i32_ty], [llvm_wasmref_ty],
                                             [IntrNoMem], "llvm.wasm.ref.is_null">;
-def int_wasm_ref_is_null_extern : Intrinsic<[llvm_i32_ty], [llvm_externref_ty],
-                                            [IntrNoMem], "llvm.wasm.ref.is_null.extern">;
-def int_wasm_ref_is_null_func : Intrinsic<[llvm_i32_ty], [llvm_funcref_ty],
-                                          [IntrNoMem], "llvm.wasm.ref.is_null.func">;
 
 //===----------------------------------------------------------------------===//
 // Table intrinsics
@@ -49,20 +43,8 @@ def int_wasm_table_size : Intrinsic<[llvm_i32_ty],
 def int_wasm_table_copy : Intrinsic<[],
                                     [llvm_table_ty, llvm_table_ty, llvm_i32_ty, llvm_i32_ty, llvm_i32_ty],
                                     []>;
-def int_wasm_table_grow_externref : Intrinsic<[llvm_i32_ty],
-                                              [llvm_table_ty, llvm_externref_ty, llvm_i32_ty],
-                                              []>;
-def int_wasm_table_grow_funcref : Intrinsic<[llvm_i32_ty],
-                                            [llvm_table_ty, llvm_funcref_ty, llvm_i32_ty],
-                                            []>;
 def int_wasm_table_grow_wasmref : Intrinsic<[llvm_i32_ty],
                                             [llvm_table_ty, llvm_wasmref_ty, llvm_i32_ty],
-                                            []>;
-def int_wasm_table_fill_externref : Intrinsic<[],
-                                              [llvm_table_ty, llvm_i32_ty, llvm_externref_ty, llvm_i32_ty],
-                                              []>;
-def int_wasm_table_fill_funcref : Intrinsic<[],
-                                            [llvm_table_ty, llvm_i32_ty, llvm_funcref_ty, llvm_i32_ty],
                                             []>;
 def int_wasm_table_fill_wasmref : Intrinsic<[],
                                             [llvm_table_ty, llvm_i32_ty, llvm_wasmref_ty, llvm_i32_ty],

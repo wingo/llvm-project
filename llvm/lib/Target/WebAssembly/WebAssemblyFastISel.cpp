@@ -132,11 +132,6 @@ private:
     case MVT::f32:
     case MVT::f64:
       return VT;
-    case MVT::funcref:
-    case MVT::externref:
-      if (Subtarget->hasReferenceTypes())
-        return VT;
-      break;
     case MVT::f16:
       return MVT::f32;
     case MVT::v16i8:
@@ -1339,8 +1334,6 @@ bool WebAssemblyFastISel::selectRet(const Instruction *I) {
   case MVT::v2i64:
   case MVT::v4f32:
   case MVT::v2f64:
-  case MVT::funcref:
-  case MVT::externref:
     break;
   default:
     return false;

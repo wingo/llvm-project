@@ -68,8 +68,6 @@ MVT WebAssembly::parseMVT(StringRef Type) {
       .Case("v8i16", MVT::v8i16)
       .Case("v4i32", MVT::v4i32)
       .Case("v2i64", MVT::v2i64)
-      .Case("funcref", MVT::funcref)
-      .Case("externref", MVT::externref)
       .Default(MVT::INVALID_SIMPLE_VALUE_TYPE);
 }
 
@@ -142,10 +140,6 @@ wasm::ValType WebAssembly::toValType(MVT Type) {
   case MVT::v4f32:
   case MVT::v2f64:
     return wasm::ValType::V128;
-  case MVT::funcref:
-    return wasm::ValType::FUNCREF;
-  case MVT::externref:
-    return wasm::ValType::EXTERNREF;
   case MVT::wasmref:
     return wasm::ValType::WASMREF;
   default:

@@ -89,9 +89,9 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
     }
   }
   if (Subtarget->hasReferenceTypes()) {
-    // We need custom load and store lowering for both externref, funcref and
+    // We need custom load and store lowering for both wasmref and
     // Other. The MVT::Other here represents tables of reference types.
-    for (auto T : {MVT::externref, MVT::funcref, MVT::wasmref, MVT::Other}) {
+    for (auto T : {MVT::wasmref, MVT::Other}) {
       setOperationAction(ISD::LOAD, T, Custom);
       setOperationAction(ISD::STORE, T, Custom);
     }
@@ -347,10 +347,6 @@ MVT WebAssemblyTargetLowering::getPointerTy(const DataLayout &DL,
                                             uint32_t AS) const {
   if (WebAssembly::isTypeIdAddressSpace(AS))
     return MVT::wasmref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_EXTERNREF)
-    return MVT::externref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF)
-    return MVT::funcref;
   return TargetLowering::getPointerTy(DL, AS);
 }
 
@@ -358,10 +354,6 @@ MVT WebAssemblyTargetLowering::getPointerMemTy(const DataLayout &DL,
                                                uint32_t AS) const {
   if (WebAssembly::isTypeIdAddressSpace(AS))
     return MVT::wasmref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_EXTERNREF)
-    return MVT::externref;
-  if (AS == WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF)
-    return MVT::funcref;
   return TargetLowering::getPointerMemTy(DL, AS);
 }
 
@@ -1226,7 +1218,7 @@ WebAssemblyTargetLowering::LowerCall(CallLoweringInfo &CLI,
     SDValue TableSetOps[] = {Chain, Sym, TableSlot, Callee};
     SDValue TableSet = DAG.getMemIntrinsicNode(
         WebAssemblyISD::TABLE_SET, DL, DAG.getVTList(MVT::Other), TableSetOps,
-        MVT::funcref,
+        MVT::wasmref,
         // Machine Mem Operand args
         MachinePointerInfo(
             WebAssembly::WasmAddressSpace::WASM_ADDRESS_SPACE_FUNCREF),
