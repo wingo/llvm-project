@@ -15,6 +15,7 @@
 #ifndef LLVM_LIB_TARGET_WEBASSEMBLY_WEBASSEMBLYTARGETMACHINE_H
 #define LLVM_LIB_TARGET_WEBASSEMBLY_WEBASSEMBLYTARGETMACHINE_H
 
+#include "Utils/WebAssemblyTypeUtilities.h"
 #include "WebAssemblySubtarget.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -57,6 +58,13 @@ public:
                                 PerFunctionMIParsingState &PFS,
                                 SMDiagnostic &Error,
                                 SMRange &SourceRange) const override;
+
+  /// Returns true if a cast between SrcAS and DestAS is a noop.
+  bool isNoopAddrSpaceCast(unsigned SrcAS, unsigned DestAS) const override {
+    // Cast is a no-op if the source and target are typeids.
+    return WebAssembly::isTypeIdAddressSpace(SrcAS) &&
+           WebAssembly::isTypeIdAddressSpace(DestAS);
+  }
 };
 
 } // end namespace llvm

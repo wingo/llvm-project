@@ -21,8 +21,10 @@
 #include "llvm/MC/MCSymbolWasm.h"
 #include "llvm/Support/MachineValueType.h"
 
+
 namespace llvm {
 
+class Module;
 class TargetRegisterClass;
 
 namespace WebAssembly {
@@ -38,6 +40,7 @@ enum class BlockType : unsigned {
   V128 = unsigned(wasm::ValType::V128),
   Externref = unsigned(wasm::ValType::EXTERNREF),
   Funcref = unsigned(wasm::ValType::FUNCREF),
+  Wasmref = unsigned(wasm::ValType::WASMREF),
   // Multivalue blocks (and other non-void blocks) are only emitted when the
   // blocks will never be exited and are at the ends of functions (see
   // WebAssemblyCFGStackify::fixEndsAtEndOfFunction). They also are never made
@@ -69,6 +72,11 @@ inline bool isWasmVarAddressSpace(unsigned AS) {
 inline bool isValidAddressSpace(unsigned AS) {
   return isDefaultAddressSpace(AS) || isWasmVarAddressSpace(AS);
 }
+
+inline bool isTypeIdAddressSpace(unsigned AS) {
+  return AS > 255;
+}
+
 inline bool isFuncrefType(const Type *Ty) {
   return isa<PointerType>(Ty) &&
          Ty->getPointerAddressSpace() ==
@@ -79,13 +87,22 @@ inline bool isExternrefType(const Type *Ty) {
          Ty->getPointerAddressSpace() ==
              WasmAddressSpace::WASM_ADDRESS_SPACE_EXTERNREF;
 }
+
+inline bool isWasmRefType(const Type *Ty) {
+  return isa<PointerType>(Ty) &&
+         isTypeIdAddressSpace(Ty->getPointerAddressSpace());
+}
+
 inline bool isRefType(const Type *Ty) {
-  return isFuncrefType(Ty) || isExternrefType(Ty);
+  return isFuncrefType(Ty) || isExternrefType(Ty) || isWasmRefType(Ty);
 }
 
 inline bool isRefType(wasm::ValType Type) {
-  return Type == wasm::ValType::EXTERNREF || Type == wasm::ValType::FUNCREF;
+  return Type == wasm::ValType::EXTERNREF || Type == wasm::ValType::FUNCREF ||
+         Type == wasm::ValType::WASMREF;
 }
+
+wasm::ValType retrieveValTypeForWasmRef(const Module &M, unsigned AS);
 
 // Convert StringRef to ValType / HealType / BlockType
 

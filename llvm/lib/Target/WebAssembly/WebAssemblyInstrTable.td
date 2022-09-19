@@ -64,9 +64,13 @@ multiclass TABLE<WebAssemblyRegClass rc, string suffix> {
 
 defm "" : TABLE<FUNCREF, "funcref">, Requires<[HasReferenceTypes]>;
 defm "" : TABLE<EXTERNREF, "externref">, Requires<[HasReferenceTypes]>;
+defm "" : TABLE<WASMREF, "wasmref">, Requires<[HasReferenceTypes]>;
 
 def : Pat<(WebAssemblyTableSet mcsym:$table, i32:$idx, funcref:$r),
           (TABLE_SET_FUNCREF mcsym:$table, i32:$idx, funcref:$r)>,
+          Requires<[HasReferenceTypes]>;
+def : Pat<(WebAssemblyTableSet mcsym:$table, i32:$idx, wasmref:$r),
+          (TABLE_SET_WASMREF mcsym:$table, i32:$idx, wasmref:$r)>,
           Requires<[HasReferenceTypes]>;
 
 defm TABLE_SIZE : I<(outs I32:$sz), (ins table32_op:$table),

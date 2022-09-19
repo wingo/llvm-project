@@ -1,6 +1,9 @@
 ; RUN: llc < %s --mtriple=wasm32-unknown-unknown -asm-verbose=false -mattr=+reference-types 2>&1 | FileCheck %s
 
-%externref = type ptr addrspace(10)
+!0 = !{!"externref"}
+!wasm.type_info = !{!0}
+
+%externref = type ptr addrspace(257)
 
 define i32 @externref_to_int(%externref %ref) {
   %i = ptrtoint %externref %ref to i32

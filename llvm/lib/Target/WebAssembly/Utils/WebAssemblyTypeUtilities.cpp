@@ -14,6 +14,7 @@
 #include "WebAssemblyTypeUtilities.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/IR/Module.h"
 
 // Get register classes enum.
 #define GET_REGINFO_ENUM
@@ -94,6 +95,8 @@ const char *WebAssembly::anyTypeToString(unsigned Type) {
     return "func";
   case wasm::WASM_TYPE_NORESULT:
     return "void";
+  case wasm::WASM_TYPE_WASMREF:
+    report_fatal_error("Can't convert wasmref to string");
   default:
     return "invalid_type";
   }
@@ -143,6 +146,8 @@ wasm::ValType WebAssembly::toValType(MVT Type) {
     return wasm::ValType::FUNCREF;
   case MVT::externref:
     return wasm::ValType::EXTERNREF;
+  case MVT::wasmref:
+    return wasm::ValType::WASMREF;
   default:
     llvm_unreachable("unexpected type");
   }
@@ -164,6 +169,8 @@ wasm::ValType WebAssembly::regClassToValType(unsigned RC) {
     return wasm::ValType::FUNCREF;
   case WebAssembly::EXTERNREFRegClassID:
     return wasm::ValType::EXTERNREF;
+  case WebAssembly::WASMREFRegClassID:
+    return wasm::ValType::WASMREF;
   default:
     llvm_unreachable("unexpected type");
   }
@@ -192,10 +199,14 @@ void WebAssembly::wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym,
       ValTy = wasm::ValType::EXTERNREF;
     else if (WebAssembly::isFuncrefType(ElTy))
       ValTy = wasm::ValType::FUNCREF;
+    else if (WebAssembly::isWasmRefType(ElTy))
+      ValTy = retrieveValTypeForWasmRef(M, ElTy->getPointerAddressSpace());
     else
       report_fatal_error("unhandled reference type");
   } else if (VTs.size() == 1) {
     ValTy = WebAssembly::toValType(VTs[0]);
+    if (ValTy == wasm::ValType::WASMREF)
+      ValTy = retrieveValTypeForWasmRef(M, GlobalVT->getPointerAddressSpace());
   } else
     report_fatal_error("Aggregate globals not yet implemented");
 
@@ -206,4 +217,33 @@ void WebAssembly::wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym,
     Sym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
     Sym->setGlobalType(wasm::WasmGlobalType{uint8_t(ValTy), /*Mutable=*/true});
   }
+}
+
+wasm::ValType WebAssembly::retrieveValTypeForWasmRef(const Module &M, unsigned AS) {
+  assert(AS > 255 && "Received a non-wasmref ASID");
+  if (AS == 256)
+    report_fatal_error("Can't retrieve valtype for untyped wasmref");
+  unsigned TypeId = AS - 257;
+
+  NamedMDNode *WasmTypeInfoMD = M.getNamedMetadata("wasm.type_info");
+  if (!WasmTypeInfoMD)
+    report_fatal_error("Can't retrieve wasm.type_info named metadata");
+
+  unsigned NumTyIds = WasmTypeInfoMD->getNumOperands();
+  if (NumTyIds < TypeId)
+    report_fatal_error("No metadata for given typeid");
+
+  MDNode *TyInfoMDNode = WasmTypeInfoMD->getOperand(TypeId);
+  MDString *TyInfoMDStr = dyn_cast<MDString>(TyInfoMDNode->getOperand(0));
+  if (!TyInfoMDStr)
+    report_fatal_error("wasm.type_info metadata in unexpected format");
+
+  StringRef TyInfoStr = TyInfoMDStr->getString();
+  if (TyInfoStr == "externref")
+    return wasm::ValType::EXTERNREF;
+  if (TyInfoStr == "funcref")
+    return wasm::ValType::FUNCREF;
+
+
+  report_fatal_error("Unable to determine wasm::ValType for given wasmref");
 }

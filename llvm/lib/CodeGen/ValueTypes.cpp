@@ -211,6 +211,10 @@ Type *EVT::getTypeForEVT(LLVMContext &Context) const {
   case MVT::funcref:
     // pointer to i8 addrspace(20)
     return PointerType::get(Type::getInt8Ty(Context), 20);
+  case MVT::wasmref:
+    // As we can't determine the original typeid, use AS 256 to represent
+    // unknown type.
+    return PointerType::get(Context, 256);
   case MVT::v1i1:
     return FixedVectorType::get(Type::getInt1Ty(Context), 1);
   case MVT::v2i1:

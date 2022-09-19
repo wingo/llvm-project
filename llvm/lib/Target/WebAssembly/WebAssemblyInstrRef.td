@@ -20,6 +20,15 @@ multiclass REF_I<WebAssemblyRegClass rc, ValueType vt, string ht> {
                         !cond(!eq(ht, "func")   : 0xd070, 
                               !eq(ht, "extern") : 0xd06f)>,
                       Requires<[HasReferenceTypes]>;
+  // FIXME: Temporary hack
+  defm REF_NULL_WASMREF_#rc : I<(outs WASMREF:$dst), (ins),
+                        (outs), (ins),
+                        [],
+                        "ref.null_" # ht # "$dst",
+                        "ref.null_" # ht,
+                        !cond(!eq(ht, "func")   : 0xd070, 
+                              !eq(ht, "extern") : 0xd06f)>,
+                      Requires<[HasReferenceTypes]>;
   defm SELECT_#rc: I<(outs rc:$dst), (ins rc:$lhs, rc:$rhs, I32:$cond),
                      (outs), (ins),
                      [(set rc:$dst,
@@ -37,6 +46,13 @@ multiclass REF_I<WebAssemblyRegClass rc, ValueType vt, string ht> {
 
 defm "" : REF_I<FUNCREF, funcref, "func">;
 defm "" : REF_I<EXTERNREF, externref, "extern">;
+
+defm REF_IS_NULL_WASMREF
+    : I<(outs I32:$dst), (ins WASMREF:$ref), (outs), (ins),
+        [(set I32:$dst, (int_wasm_ref_is_null WASMREF:$ref))],
+        "ref.is_null\t$ref",
+        "ref.is_null", 0xd1>,
+      Requires<[HasReferenceTypes]>;
 
 foreach rc = [FUNCREF, EXTERNREF] in {
 def : Pat<(select (i32 (setne I32:$cond, 0)), rc:$lhs, rc:$rhs),

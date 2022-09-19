@@ -590,6 +590,9 @@ Error DataLayout::setAlignment(AlignTypeEnum align_type, Align abi_align,
 
 const PointerAlignElem &
 DataLayout::getPointerAlignElem(uint32_t AddressSpace) const {
+  // HACK for wasm GC types.
+  if (AddressSpace > 255)
+    AddressSpace = 10;
   if (AddressSpace != 0) {
     auto I = lower_bound(Pointers, AddressSpace,
                          [](const PointerAlignElem &A, uint32_t AddressSpace) {

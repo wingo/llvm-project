@@ -12,10 +12,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/WebAssemblyMCTargetDesc.h"
+#include "Utils/WebAssemblyTypeUtilities.h"
 #include "WebAssembly.h"
 #include "WebAssemblyISelLowering.h"
 #include "WebAssemblyTargetMachine.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/CodeGen/WasmEHFuncInfo.h"
 #include "llvm/IR/DiagnosticInfo.h"
@@ -168,6 +170,31 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
           CurDAG->getTargetExternalSymbol("__tls_align", PtrVT));
       ReplaceNode(Node, TLSAlign);
       return;
+    }
+
+    case Intrinsic::wasm_ref_null: {
+      // parameter should be a constant i32
+      // Look up module metadata (use retrieveValTypeForWasmRef)
+      // Select
+      unsigned TypeId = Node->getConstantOperandVal(1);
+      wasm::ValType WVT = WebAssembly::retrieveValTypeForWasmRef(
+          *MF.getMMI().getModule(), TypeId + 257);
+      // FIXME: Temporary hack - should actually have a generic ref.null
+      // instruction.
+      switch (WVT) {
+      default:
+        report_fatal_error("Unexpected wasm::ValType encountered");
+      case wasm::ValType::EXTERNREF:
+        ReplaceNode(Node, CurDAG->getMachineNode(
+                              WebAssembly::REF_NULL_WASMREF_EXTERNREF, DL,
+                              MVT::wasmref));
+        return;
+      case wasm::ValType::FUNCREF:
+        ReplaceNode(
+            Node, CurDAG->getMachineNode(WebAssembly::REF_NULL_WASMREF_FUNCREF,
+                                         DL, MVT::wasmref));
+        return;
+      }
     }
     }
     break;

@@ -1,6 +1,9 @@
 ; RUN: llc < %s --mtriple=wasm32-unknown-unknown -asm-verbose=false -mattr=+reference-types | FileCheck %s
 
-%externref = type ptr addrspace(10) ;; addrspace 10 is nonintegral
+!0 = !{!"externref"}
+!wasm.type_info = !{!0}
+
+%externref = type ptr addrspace(257)
 
 @externref_global = local_unnamed_addr addrspace(1) global %externref undef
 
