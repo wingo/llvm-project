@@ -197,6 +197,12 @@ private:
   // Free all internal data structures.
   void clear();
 
+  /// Return the address spaces containing non-integral pointers.  Pointers in
+  /// this address space don't have a well-defined bitwise representation.
+  ArrayRef<unsigned> getNonIntegralAddressSpaces() const {
+    return NonIntegralAddressSpaces;
+  }
+
 public:
   /// Constructs a DataLayout from a specification string. See reset().
   explicit DataLayout(StringRef LayoutDescription) {
@@ -385,12 +391,6 @@ public:
   // Index size in bytes used for address calculation,
   /// rounded up to a whole number of bytes.
   unsigned getIndexSize(unsigned AS) const;
-
-  /// Return the address spaces containing non-integral pointers.  Pointers in
-  /// this address space don't have a well-defined bitwise representation.
-  ArrayRef<unsigned> getNonIntegralAddressSpaces() const {
-    return NonIntegralAddressSpaces;
-  }
 
   bool isNonIntegralAddressSpace(unsigned AddrSpace) const {
     ArrayRef<unsigned> NonIntegralSpaces = getNonIntegralAddressSpaces();
