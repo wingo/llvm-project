@@ -219,9 +219,9 @@ ErrorOr<WasmYAML::Object *> WasmDumper::dump() {
         WasmYAML::Signature Sig;
         Sig.Index = Index++;
         for (const auto &ParamType : FunctionSig.Params)
-          Sig.ParamTypes.emplace_back(static_cast<uint32_t>(ParamType));
+          Sig.ParamTypes.emplace_back(ParamType.encodeType());
         for (const auto &ReturnType : FunctionSig.Returns)
-          Sig.ReturnTypes.emplace_back(static_cast<uint32_t>(ReturnType));
+          Sig.ReturnTypes.emplace_back(ReturnType.encodeType());
         TypeSec->Signatures.push_back(Sig);
       }
       S = std::move(TypeSec);

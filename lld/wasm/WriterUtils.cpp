@@ -19,7 +19,7 @@ using namespace llvm::wasm;
 
 namespace lld {
 std::string toString(ValType type) {
-  switch (type) {
+  switch (type.Kind) {
   case ValType::I32:
     return "i32";
   case ValType::I64:
@@ -34,8 +34,6 @@ std::string toString(ValType type) {
     return "funcref";
   case ValType::EXTERNREF:
     return "externref";
-  case ValType::WASMREF:
-    report_fatal_error("WASMREF not handled yet");
   }
   llvm_unreachable("Invalid wasm::ValType");
 }
@@ -121,7 +119,7 @@ void writeU64(raw_ostream &os, uint64_t number, const Twine &msg) {
 }
 
 void writeValueType(raw_ostream &os, ValType type, const Twine &msg) {
-  writeU8(os, static_cast<uint8_t>(type),
+  writeU8(os, type.encodeType(),
           msg + "[type: " + toString(type) + "]");
 }
 

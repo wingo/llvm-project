@@ -108,7 +108,7 @@ static bool isEmscriptenInvokeName(StringRef Name) {
 // Returns a character that represents the given wasm value type in invoke
 // signatures.
 static char getInvokeSig(wasm::ValType VT) {
-  switch (VT) {
+  switch (VT.Kind) {
   case wasm::ValType::I32:
     return 'i';
   case wasm::ValType::I64:
@@ -123,8 +123,6 @@ static char getInvokeSig(wasm::ValType VT) {
     return 'F';
   case wasm::ValType::EXTERNREF:
     return 'X';
-  case wasm::ValType::WASMREF:
-    report_fatal_error("Not handled yet for WASMREF");
   }
   llvm_unreachable("Unhandled wasm::ValType enum");
 }

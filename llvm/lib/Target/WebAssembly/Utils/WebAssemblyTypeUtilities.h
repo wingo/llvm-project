@@ -40,7 +40,6 @@ enum class BlockType : unsigned {
   V128 = unsigned(wasm::ValType::V128),
   Externref = unsigned(wasm::ValType::EXTERNREF),
   Funcref = unsigned(wasm::ValType::FUNCREF),
-  Wasmref = unsigned(wasm::ValType::WASMREF),
   // Multivalue blocks (and other non-void blocks) are only emitted when the
   // blocks will never be exited and are at the ends of functions (see
   // WebAssemblyCFGStackify::fixEndsAtEndOfFunction). They also are never made
@@ -98,8 +97,8 @@ inline bool isRefType(const Type *Ty) {
 }
 
 inline bool isRefType(wasm::ValType Type) {
-  return Type == wasm::ValType::EXTERNREF || Type == wasm::ValType::FUNCREF ||
-         Type == wasm::ValType::WASMREF;
+  // TODO: needs to consider type indices too.
+  return Type == wasm::ValType::EXTERNREF || Type == wasm::ValType::FUNCREF;
 }
 
 wasm::ValType retrieveValTypeForWasmRef(const Module &M, unsigned AS);

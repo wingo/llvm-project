@@ -172,7 +172,8 @@ bool WebAssemblyAsmTypeCheck::getGlobal(SMLoc ErrorLoc, const MCInst &Inst,
   auto WasmSym = cast<MCSymbolWasm>(&SymRef->getSymbol());
   switch (WasmSym->getType().value_or(wasm::WASM_SYMBOL_TYPE_DATA)) {
   case wasm::WASM_SYMBOL_TYPE_GLOBAL:
-    Type = static_cast<wasm::ValType>(WasmSym->getGlobalType().Type);
+    // FIXME: Need to handle type indexes.
+    Type = wasm::ValType(WasmSym->getGlobalType().Type);
     break;
   case wasm::WASM_SYMBOL_TYPE_FUNCTION:
   case wasm::WASM_SYMBOL_TYPE_DATA:
@@ -202,7 +203,8 @@ bool WebAssemblyAsmTypeCheck::getTable(SMLoc ErrorLoc, const MCInst &Inst,
       wasm::WASM_SYMBOL_TYPE_TABLE)
     return typeError(ErrorLoc, StringRef("symbol ") + WasmSym->getName() +
                                    " missing .tabletype");
-  Type = static_cast<wasm::ValType>(WasmSym->getTableType().ElemType);
+  // FIXME: Need to handle type indexes.
+  Type = wasm::ValType((WasmSym->getTableType().ElemType));
   return false;
 }
 
@@ -253,7 +255,7 @@ bool WebAssemblyAsmTypeCheck::typeCheck(SMLoc ErrorLoc, const MCInst &Inst,
   } else if (Name == "table.get") {
     if (getTable(Operands[1]->getStartLoc(), Inst, Type))
       return true;
-    if (popType(ErrorLoc, wasm::ValType::I32))
+    if (popType(ErrorLoc, wasm::ValType(wasm::ValType::I32)))
       return true;
     Stack.push_back(Type);
   } else if (Name == "table.set") {
@@ -261,16 +263,16 @@ bool WebAssemblyAsmTypeCheck::typeCheck(SMLoc ErrorLoc, const MCInst &Inst,
       return true;
     if (popType(ErrorLoc, Type))
       return true;
-    if (popType(ErrorLoc, wasm::ValType::I32))
+    if (popType(ErrorLoc, wasm::ValType(wasm::ValType::I32)))
       return true;
   } else if (Name == "table.fill") {
     if (getTable(Operands[1]->getStartLoc(), Inst, Type))
       return true;
-    if (popType(ErrorLoc, wasm::ValType::I32))
+    if (popType(ErrorLoc, wasm::ValType(wasm::ValType::I32)))
       return true;
     if (popType(ErrorLoc, Type))
       return true;
-    if (popType(ErrorLoc, wasm::ValType::I32))
+    if (popType(ErrorLoc, wasm::ValType(wasm::ValType::I32)))
       return true;
   } else if (Name == "drop") {
     if (popType(ErrorLoc, {}))
@@ -286,7 +288,7 @@ bool WebAssemblyAsmTypeCheck::typeCheck(SMLoc ErrorLoc, const MCInst &Inst,
       return true;
   } else if (Name == "call_indirect" || Name == "return_call_indirect") {
     // Function value.
-    if (popType(ErrorLoc, wasm::ValType::I32)) return true;
+    if (popType(ErrorLoc, wasm::ValType(wasm::ValType::I32))) return true;
     if (checkSig(ErrorLoc, LastSig)) return true;
     if (Name == "return_call_indirect" && endOfFunction(ErrorLoc))
       return true;

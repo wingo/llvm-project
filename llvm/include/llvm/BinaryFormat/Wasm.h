@@ -267,7 +267,6 @@ enum : unsigned {
   WASM_TYPE_EXTERNREF = 0x6F,
   WASM_TYPE_FUNC = 0x60,
   WASM_TYPE_NORESULT = 0x40, // for blocks with no result values
-  WASM_TYPE_WASMREF = 0xff // Not an actual encoding, needs custom handling.
 };
 
 // Kinds of externals (for imports and exports).
@@ -421,17 +420,37 @@ enum : unsigned {
 
 #undef WASM_RELOC
 
-// Subset of types that a value can have
-enum class ValType {
-  I32 = WASM_TYPE_I32,
-  I64 = WASM_TYPE_I64,
-  F32 = WASM_TYPE_F32,
-  F64 = WASM_TYPE_F64,
-  V128 = WASM_TYPE_V128,
-  FUNCREF = WASM_TYPE_FUNCREF,
-  EXTERNREF = WASM_TYPE_EXTERNREF,
-  WASMREF = WASM_TYPE_WASMREF,
+// Represents the set of types a value can have.
+struct ValType {
+  enum TypeKind : uint32_t {
+    I32 = WASM_TYPE_I32,
+    I64 = WASM_TYPE_I64,
+    F32 = WASM_TYPE_F32,
+    F64 = WASM_TYPE_F64,
+    V128 = WASM_TYPE_V128,
+    FUNCREF = WASM_TYPE_FUNCREF,
+    EXTERNREF = WASM_TYPE_EXTERNREF,
+  };
+  TypeKind Kind;
+  int TypeIdx;
+  ValType() = default;
+  ValType(TypeKind K, int Idx = 0) : Kind(K), TypeIdx(Idx) {}
+  ValType(unsigned K, int Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
+  // FIXME: compare TypeIdx too
+  bool operator==(const ValType o) const { return Kind == o.Kind; }
+  bool operator==(const TypeKind o) const { return Kind == o; }
+  bool operator!=(const ValType o) const { return !(*this == o); }
+  bool operator!=(const TypeKind o) const { return !(*this == o); }
+  // FIXME: should return a sleb128.
+  uint8_t encodeType() const {
+    return Kind;
+  }
 };
+
+inline hash_code hash_value(const ValType &WVT) {
+  // FIXME: should hash_combine Kind and TypeIdx for a typeindex typekind.
+  return hash_combine(WVT.Kind);
+}
 
 struct WasmSignature {
   SmallVector<ValType, 1> Returns;

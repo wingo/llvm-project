@@ -26,20 +26,20 @@ Optional<wasm::ValType> WebAssembly::parseType(StringRef Type) {
   // FIXME: can't use StringSwitch because wasm::ValType doesn't have a
   // "invalid" value.
   if (Type == "i32")
-    return wasm::ValType::I32;
+    return wasm::ValType(wasm::ValType::I32);
   if (Type == "i64")
-    return wasm::ValType::I64;
+    return wasm::ValType(wasm::ValType::I64);
   if (Type == "f32")
-    return wasm::ValType::F32;
+    return wasm::ValType(wasm::ValType::F32);
   if (Type == "f64")
-    return wasm::ValType::F64;
+    return wasm::ValType(wasm::ValType::F64);
   if (Type == "v128" || Type == "i8x16" || Type == "i16x8" || Type == "i32x4" ||
       Type == "i64x2" || Type == "f32x4" || Type == "f64x2")
-    return wasm::ValType::V128;
+    return wasm::ValType(wasm::ValType::V128);
   if (Type == "funcref")
-    return wasm::ValType::FUNCREF;
+    return wasm::ValType(wasm::ValType::FUNCREF);
   if (Type == "externref")
-    return wasm::ValType::EXTERNREF;
+    return wasm::ValType(wasm::ValType::EXTERNREF);
   return Optional<wasm::ValType>();
 }
 
@@ -93,15 +93,13 @@ const char *WebAssembly::anyTypeToString(unsigned Type) {
     return "func";
   case wasm::WASM_TYPE_NORESULT:
     return "void";
-  case wasm::WASM_TYPE_WASMREF:
-    report_fatal_error("Can't convert wasmref to string");
   default:
     return "invalid_type";
   }
 }
 
 const char *WebAssembly::typeToString(wasm::ValType Type) {
-  return anyTypeToString(static_cast<unsigned>(Type));
+  return anyTypeToString(static_cast<unsigned>(Type.Kind));
 }
 
 std::string WebAssembly::typeListToString(ArrayRef<wasm::ValType> List) {
@@ -140,8 +138,6 @@ wasm::ValType WebAssembly::toValType(MVT Type) {
   case MVT::v4f32:
   case MVT::v2f64:
     return wasm::ValType::V128;
-  case MVT::wasmref:
-    return wasm::ValType::WASMREF;
   default:
     llvm_unreachable("unexpected type");
   }
@@ -159,8 +155,6 @@ wasm::ValType WebAssembly::regClassToValType(unsigned RC) {
     return wasm::ValType::F64;
   case WebAssembly::V128RegClassID:
     return wasm::ValType::V128;
-  case WebAssembly::WASMREFRegClassID:
-    return wasm::ValType::WASMREF;
   default:
     llvm_unreachable("unexpected type");
   }
@@ -179,33 +173,35 @@ void WebAssembly::wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym,
   // Tables are represented as Arrays in LLVM IR therefore
   // they reach this point as aggregate Array types with an element type
   // that is a reference type.
-  wasm::ValType ValTy;
+  // FIXME: Will need updating to handle type indexes.
+  wasm::ValType::TypeKind ValKind;
   bool IsTable = false;
   if (GlobalVT->isArrayTy() &&
       WebAssembly::isRefType(GlobalVT->getArrayElementType())) {
     IsTable = true;
     const Type *ElTy = GlobalVT->getArrayElementType();
     if (WebAssembly::isExternrefType(ElTy))
-      ValTy = wasm::ValType::EXTERNREF;
+      ValKind = wasm::ValType::EXTERNREF;
     else if (WebAssembly::isFuncrefType(ElTy))
-      ValTy = wasm::ValType::FUNCREF;
+      ValKind = wasm::ValType::FUNCREF;
     else if (WebAssembly::isWasmRefType(ElTy))
-      ValTy = retrieveValTypeForWasmRef(M, ElTy->getPointerAddressSpace());
+      ValKind = retrieveValTypeForWasmRef(M, ElTy->getPointerAddressSpace()).Kind;
     else
       report_fatal_error("unhandled reference type");
   } else if (VTs.size() == 1) {
-    ValTy = WebAssembly::toValType(VTs[0]);
-    if (ValTy == wasm::ValType::WASMREF)
-      ValTy = retrieveValTypeForWasmRef(M, GlobalVT->getPointerAddressSpace());
+    if (VTs[0] == MVT::wasmref)
+      ValKind = retrieveValTypeForWasmRef(M, GlobalVT->getPointerAddressSpace()).Kind;
+    else
+      ValKind = WebAssembly::toValType(VTs[0]).Kind;
   } else
     report_fatal_error("Aggregate globals not yet implemented");
 
   if (IsTable) {
     Sym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-    Sym->setTableType(ValTy);
+    Sym->setTableType(ValKind);
   } else {
     Sym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
-    Sym->setGlobalType(wasm::WasmGlobalType{uint8_t(ValTy), /*Mutable=*/true});
+    Sym->setGlobalType(wasm::WasmGlobalType{uint8_t(ValKind), /*Mutable=*/true});
   }
 }
 

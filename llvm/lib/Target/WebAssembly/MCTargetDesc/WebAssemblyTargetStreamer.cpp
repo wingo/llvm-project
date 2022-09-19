@@ -28,7 +28,7 @@ WebAssemblyTargetStreamer::WebAssemblyTargetStreamer(MCStreamer &S)
     : MCTargetStreamer(S) {}
 
 void WebAssemblyTargetStreamer::emitValueType(wasm::ValType Type) {
-  Streamer.emitIntValue(uint8_t(Type), 1);
+  Streamer.emitIntValue(Type.encodeType(), 1);
 }
 
 WebAssemblyTargetAsmStreamer::WebAssemblyTargetAsmStreamer(
@@ -67,9 +67,10 @@ void WebAssemblyTargetAsmStreamer::emitFunctionType(const MCSymbolWasm *Sym) {
 
 void WebAssemblyTargetAsmStreamer::emitGlobalType(const MCSymbolWasm *Sym) {
   assert(Sym->isGlobal());
+  // FIXME: Handle type indexes.
   OS << "\t.globaltype\t" << Sym->getName() << ", "
      << WebAssembly::typeToString(
-            static_cast<wasm::ValType>(Sym->getGlobalType().Type));
+            wasm::ValType(Sym->getGlobalType().Type));
   if (!Sym->getGlobalType().Mutable)
     OS << ", immutable";
   OS << '\n';
@@ -78,8 +79,9 @@ void WebAssemblyTargetAsmStreamer::emitGlobalType(const MCSymbolWasm *Sym) {
 void WebAssemblyTargetAsmStreamer::emitTableType(const MCSymbolWasm *Sym) {
   assert(Sym->isTable());
   const wasm::WasmTableType &Type = Sym->getTableType();
+  // FIXME: handle type indexes.
   OS << "\t.tabletype\t" << Sym->getName() << ", "
-     << WebAssembly::typeToString(static_cast<wasm::ValType>(Type.ElemType));
+     << WebAssembly::typeToString(wasm::ValType(Type.ElemType));
   bool HasMaximum = Type.Limits.Flags & wasm::WASM_LIMITS_FLAG_HAS_MAX;
   if (Type.Limits.Minimum != 0 || HasMaximum) {
     OS << ", " << Type.Limits.Minimum;

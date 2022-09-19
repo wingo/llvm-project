@@ -472,7 +472,7 @@ public:
   void addBlockTypeOperand(OperandVector &Operands, SMLoc NameLoc,
                            WebAssembly::BlockType BT) {
     if (BT != WebAssembly::BlockType::Void) {
-      wasm::WasmSignature Sig({static_cast<wasm::ValType>(BT)}, {});
+      wasm::WasmSignature Sig({wasm::ValType((unsigned)BT)}, {});
       TC.setLastSig(Sig);
       NestingStack.back().Sig = Sig;
     }
@@ -819,7 +819,7 @@ public:
       // Now set this symbol with the correct type.
       auto WasmSym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(SymName));
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
-      WasmSym->setGlobalType(wasm::WasmGlobalType{uint8_t(*Type), Mutable});
+      WasmSym->setGlobalType(wasm::WasmGlobalType{Type->encodeType(), Mutable});
       // And emit the directive again.
       TOut.emitGlobalType(WasmSym);
       return expect(AsmToken::EndOfStatement, "EOL");
@@ -849,7 +849,7 @@ public:
       // symbol
       auto WasmSym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(SymName));
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-      wasm::WasmTableType Type = {uint8_t(*ElemType), Limits};
+      wasm::WasmTableType Type = {ElemType->encodeType(), Limits};
       WasmSym->setTableType(Type);
       TOut.emitTableType(WasmSym);
       return expect(AsmToken::EndOfStatement, "EOL");

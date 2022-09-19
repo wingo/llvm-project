@@ -181,7 +181,7 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
           *MF.getMMI().getModule(), TypeId + 257);
       // FIXME: Temporary hack - should actually have a generic ref.null
       // instruction.
-      switch (WVT) {
+      switch (WVT.Kind) {
       default:
         report_fatal_error("Unexpected wasm::ValType encountered");
       case wasm::ValType::EXTERNREF:

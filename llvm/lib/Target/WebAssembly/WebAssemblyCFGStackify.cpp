@@ -1475,11 +1475,21 @@ void WebAssemblyCFGStackify::fixEndsAtEndOfFunction(MachineFunction &MF) {
 
   // MCInstLower will add the proper types to multivalue signatures based on the
   // function return type
-  WebAssembly::BlockType RetType =
-      MFI.getResults().size() > 1
-          ? WebAssembly::BlockType::Multivalue
-          : WebAssembly::BlockType(
-                WebAssembly::toValType(MFI.getResults().front()));
+  WebAssembly::BlockType RetType;
+  if (MFI.getResults().size() > 1) {
+    RetType = WebAssembly::BlockType::Multivalue;
+  } else {
+    MVT Ty = MFI.getResults().front();
+    wasm::ValType WVT;
+    if (Ty == MVT::wasmref) {
+      WVT = WebAssembly::retrieveValTypeForWasmRef(
+          *MF.getFunction().getParent(),
+          MF.getFunction().getReturnType()->getPointerAddressSpace());
+    } else {
+      WVT = WebAssembly::toValType(Ty);
+    }
+    RetType = WebAssembly::BlockType(static_cast<unsigned>(WVT.Kind));
+  }
 
   SmallVector<MachineBasicBlock::reverse_iterator, 4> Worklist;
   Worklist.push_back(MF.rbegin()->rbegin());

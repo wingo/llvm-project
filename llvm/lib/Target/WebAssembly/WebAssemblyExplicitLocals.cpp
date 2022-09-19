@@ -136,16 +136,16 @@ static wasm::ValType getWVTForVReg(MachineFunction &MF,
     return RL->second.second;
 
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  wasm::ValType WVT = WebAssembly::regClassToValType(MRI.getRegClass(VReg));
-  if (WVT != wasm::ValType::WASMREF)
-    return WVT;
+  const TargetRegisterClass *TRC = MRI.getRegClass(VReg);
+  if (TRC->getID() != WebAssembly::WASMREFRegClassID)
+    return WebAssembly::regClassToValType(TRC);
 
   // Determine the actual type for a WASMREF.
   if (MRI.def_empty(VReg))
     report_fatal_error("VReg unexpectedly has no defs");
 
   MachineRegisterInfo::def_instr_iterator I = MRI.def_instr_begin(VReg);
-  WVT = getWVTForWasmRefDefMI(MF, Reg2Local, *I);
+  wasm::ValType WVT = getWVTForWasmRefDefMI(MF, Reg2Local, *I);
   // Check that any other uses have the same type.
   ++I;
   for (auto E = MRI.def_instr_end(); I != E; ++I) {
@@ -476,9 +476,6 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
       continue;
 
     wasm::ValType WVT = RL->second.second;
-    if (WVT == wasm::ValType::WASMREF)
-      report_fatal_error(
-          "WASMREF WVTs should have been eliminated by this point");
     MFI.setLocal(RL->second.first - MFI.getParams().size(), WVT);
     Changed = true;
   }

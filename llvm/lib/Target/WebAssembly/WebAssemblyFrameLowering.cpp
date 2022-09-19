@@ -79,12 +79,15 @@ WebAssemblyFrameLowering::getLocalForStackObject(MachineFunction &MF,
   // Allocate WebAssembly locals for each non-aggregate component of the
   // allocation.
   for (EVT ValueVT : ValueVTs) {
-    wasm::ValType WVT = WebAssembly::toValType(ValueVT.getSimpleVT());
-    // Retrieve the actual type if we have a 'wasmref' local.
-    if (WVT == wasm::ValType::WASMREF)
+    wasm::ValType WVT;
+    if (ValueVT == MVT::wasmref) {
+      // Retrieve the actual type if we have a 'wasmref' local.
       WVT = WebAssembly::retrieveValTypeForWasmRef(
           *MF.getMMI().getModule(),
           AI->getAllocatedType()->getPointerAddressSpace());
+    } else {
+      WVT = WebAssembly::toValType(ValueVT.getSimpleVT());
+    }
     FuncInfo->addLocal(WVT);
   }
   // Abuse object size to record number of WebAssembly locals allocated to

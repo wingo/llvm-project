@@ -185,7 +185,7 @@ static Error readInitExpr(wasm::WasmInitExpr &Expr,
     Expr.Inst.Value.Global = readULEB128(Ctx);
     break;
   case wasm::WASM_OPCODE_REF_NULL: {
-    wasm::ValType Ty = static_cast<wasm::ValType>(readULEB128(Ctx));
+    wasm::ValType::TypeKind Ty = static_cast<wasm::ValType::TypeKind>(readULEB128(Ctx));
     if (Ty != wasm::ValType::EXTERNREF) {
       return make_error<GenericBinaryError>("invalid type for ref.null",
                                             object_error::parse_failed);
@@ -1092,12 +1092,12 @@ Error WasmObjectFile::parseTypeSection(ReadContext &Ctx) {
     Sig.Params.reserve(ParamCount);
     while (ParamCount--) {
       uint32_t ParamType = readUint8(Ctx);
-      Sig.Params.push_back(wasm::ValType(ParamType));
+      Sig.Params.push_back(wasm::ValType(static_cast<wasm::ValType::TypeKind>(ParamType)));
     }
     uint32_t ReturnCount = readVaruint32(Ctx);
     while (ReturnCount--) {
       uint32_t ReturnType = readUint8(Ctx);
-      Sig.Returns.push_back(wasm::ValType(ReturnType));
+      Sig.Returns.push_back(wasm::ValType(static_cast<wasm::ValType::TypeKind>(ReturnType)));
     }
     Signatures.push_back(std::move(Sig));
   }

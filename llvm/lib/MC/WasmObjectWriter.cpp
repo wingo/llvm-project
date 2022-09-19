@@ -325,7 +325,7 @@ private:
     W->OS.write(Buffer, sizeof(Buffer));
   }
 
-  void writeValueType(wasm::ValType Ty) { W->OS << static_cast<char>(Ty); }
+  void writeValueType(wasm::ValType Ty) { W->OS << Ty.encodeType(); }
 
   void writeTypeSection(ArrayRef<wasm::WasmSignature> Signatures);
   void writeImportSection(ArrayRef<wasm::WasmImport> Imports, uint64_t DataSize,
