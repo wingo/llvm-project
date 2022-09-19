@@ -225,8 +225,9 @@ def isVoid    : ValueType<0,    181>;  // Produces no value
 def untyped   : ValueType<8,    182>;  // Produces an untyped value
 def funcref   : ValueType<0,    183>;  // WebAssembly's funcref type
 def externref : ValueType<0,    184>;  // WebAssembly's externref type
-def x86amx    : ValueType<8192, 185>;  // X86 AMX value
-def i64x8     : ValueType<512,  186>;  // 8 Consecutive GPRs (AArch64)
+def wasmref   : ValueType<0,    185>;  // A WebAssembly reference type
+def x86amx    : ValueType<8192, 186>;  // X86 AMX value
+def i64x8     : ValueType<512,  187>;  // 8 Consecutive GPRs (AArch64)
 
 def token      : ValueType<0, 248>;  // TokenTy
 def MetadataVT : ValueType<0, 249>;  // Metadata
