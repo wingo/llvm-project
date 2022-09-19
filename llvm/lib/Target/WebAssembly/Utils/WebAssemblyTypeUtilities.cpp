@@ -174,7 +174,8 @@ wasm::ValType WebAssembly::regClassToValType(const TargetRegisterClass *RC) {
   return regClassToValType(RC->getID());
 }
 
-void WebAssembly::wasmSymbolSetType(MCSymbolWasm *Sym, const Type *GlobalVT,
+void WebAssembly::wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym,
+                                    const Type *GlobalVT,
                                     const SmallVector<MVT, 1> &VTs) {
   assert(!Sym->getType());
 

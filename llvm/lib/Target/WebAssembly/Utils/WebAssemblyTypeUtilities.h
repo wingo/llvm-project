@@ -118,7 +118,7 @@ wasm::ValType regClassToValType(unsigned RC);
 wasm::ValType regClassToValType(const TargetRegisterClass *RC);
 
 /// Sets a Wasm Symbol Type.
-void wasmSymbolSetType(MCSymbolWasm *Sym, const Type *GlobalVT,
+void wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym, const Type *GlobalVT,
                        const SmallVector<MVT, 1> &VTs);
 
 } // end namespace WebAssembly

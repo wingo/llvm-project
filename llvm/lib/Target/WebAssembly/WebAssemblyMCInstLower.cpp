@@ -59,7 +59,8 @@ WebAssemblyMCInstLower::GetGlobalAddressSymbol(const MachineOperand &MO) const {
       SmallVector<MVT, 1> VTs;
       computeLegalValueVTs(CurrentFunc, TM, GlobalVT, VTs);
 
-      WebAssembly::wasmSymbolSetType(WasmSym, GlobalVT, VTs);
+      WebAssembly::wasmSymbolSetType(*Global->getParent(), WasmSym, GlobalVT,
+                                     VTs);
     }
     return WasmSym;
   }
