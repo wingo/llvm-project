@@ -705,14 +705,6 @@ bool WebAssemblyFastISel::fastLowerArguments() {
       Opc = WebAssembly::ARGUMENT_v2f64;
       RC = &WebAssembly::V128RegClass;
       break;
-    case MVT::funcref:
-      Opc = WebAssembly::ARGUMENT_funcref;
-      RC = &WebAssembly::FUNCREFRegClass;
-      break;
-    case MVT::externref:
-      Opc = WebAssembly::ARGUMENT_externref;
-      RC = &WebAssembly::EXTERNREFRegClass;
-      break;
     default:
       return false;
     }
@@ -810,12 +802,6 @@ bool WebAssemblyFastISel::selectCall(const Instruction *I) {
       break;
     case MVT::v2f64:
       ResultReg = createResultReg(&WebAssembly::V128RegClass);
-      break;
-    case MVT::funcref:
-      ResultReg = createResultReg(&WebAssembly::FUNCREFRegClass);
-      break;
-    case MVT::externref:
-      ResultReg = createResultReg(&WebAssembly::EXTERNREFRegClass);
       break;
     default:
       return false;
@@ -947,14 +933,6 @@ bool WebAssemblyFastISel::selectSelect(const Instruction *I) {
   case MVT::f64:
     Opc = WebAssembly::SELECT_F64;
     RC = &WebAssembly::F64RegClass;
-    break;
-  case MVT::funcref:
-    Opc = WebAssembly::SELECT_FUNCREF;
-    RC = &WebAssembly::FUNCREFRegClass;
-    break;
-  case MVT::externref:
-    Opc = WebAssembly::SELECT_EXTERNREF;
-    RC = &WebAssembly::EXTERNREFRegClass;
     break;
   default:
     return false;

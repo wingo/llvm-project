@@ -294,10 +294,6 @@ inline bool isArgument(unsigned Opc) {
   case WebAssembly::ARGUMENT_v4f32_S:
   case WebAssembly::ARGUMENT_v2f64:
   case WebAssembly::ARGUMENT_v2f64_S:
-  case WebAssembly::ARGUMENT_funcref:
-  case WebAssembly::ARGUMENT_funcref_S:
-  case WebAssembly::ARGUMENT_externref:
-  case WebAssembly::ARGUMENT_externref_S:
   case WebAssembly::ARGUMENT_wasmref:
   case WebAssembly::ARGUMENT_wasmref_S:
     return true;
@@ -318,10 +314,6 @@ inline bool isCopy(unsigned Opc) {
   case WebAssembly::COPY_F64_S:
   case WebAssembly::COPY_V128:
   case WebAssembly::COPY_V128_S:
-  case WebAssembly::COPY_FUNCREF:
-  case WebAssembly::COPY_FUNCREF_S:
-  case WebAssembly::COPY_EXTERNREF:
-  case WebAssembly::COPY_EXTERNREF_S:
   case WebAssembly::COPY_WASMREF:
   case WebAssembly::COPY_WASMREF_S:
     return true;
@@ -342,10 +334,6 @@ inline bool isTee(unsigned Opc) {
   case WebAssembly::TEE_F64_S:
   case WebAssembly::TEE_V128:
   case WebAssembly::TEE_V128_S:
-  case WebAssembly::TEE_FUNCREF:
-  case WebAssembly::TEE_FUNCREF_S:
-  case WebAssembly::TEE_EXTERNREF:
-  case WebAssembly::TEE_EXTERNREF_S:
   case WebAssembly::TEE_WASMREF:
   case WebAssembly::TEE_WASMREF_S:
     return true;

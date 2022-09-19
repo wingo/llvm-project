@@ -97,10 +97,6 @@ static unsigned getDropOpcode(const TargetRegisterClass *RC) {
     return WebAssembly::DROP_F64;
   if (RC == &WebAssembly::V128RegClass)
     return WebAssembly::DROP_V128;
-  if (RC == &WebAssembly::FUNCREFRegClass)
-    return WebAssembly::DROP_FUNCREF;
-  if (RC == &WebAssembly::EXTERNREFRegClass)
-    return WebAssembly::DROP_EXTERNREF;
   if (RC == &WebAssembly::WASMREFRegClass)
     return WebAssembly::DROP_WASMREF;
   llvm_unreachable("Unexpected register class");
@@ -118,10 +114,6 @@ static unsigned getLocalGetOpcode(const TargetRegisterClass *RC) {
     return WebAssembly::LOCAL_GET_F64;
   if (RC == &WebAssembly::V128RegClass)
     return WebAssembly::LOCAL_GET_V128;
-  if (RC == &WebAssembly::FUNCREFRegClass)
-    return WebAssembly::LOCAL_GET_FUNCREF;
-  if (RC == &WebAssembly::EXTERNREFRegClass)
-    return WebAssembly::LOCAL_GET_EXTERNREF;
   if (RC == &WebAssembly::WASMREFRegClass)
     return WebAssembly::LOCAL_GET_WASMREF;
   llvm_unreachable("Unexpected register class");
@@ -139,10 +131,6 @@ static unsigned getLocalSetOpcode(const TargetRegisterClass *RC) {
     return WebAssembly::LOCAL_SET_F64;
   if (RC == &WebAssembly::V128RegClass)
     return WebAssembly::LOCAL_SET_V128;
-  if (RC == &WebAssembly::FUNCREFRegClass)
-    return WebAssembly::LOCAL_SET_FUNCREF;
-  if (RC == &WebAssembly::EXTERNREFRegClass)
-    return WebAssembly::LOCAL_SET_EXTERNREF;
   if (RC == &WebAssembly::WASMREFRegClass)
     return WebAssembly::LOCAL_SET_WASMREF;
   llvm_unreachable("Unexpected register class");
@@ -160,10 +148,6 @@ static unsigned getLocalTeeOpcode(const TargetRegisterClass *RC) {
     return WebAssembly::LOCAL_TEE_F64;
   if (RC == &WebAssembly::V128RegClass)
     return WebAssembly::LOCAL_TEE_V128;
-  if (RC == &WebAssembly::FUNCREFRegClass)
-    return WebAssembly::LOCAL_TEE_FUNCREF;
-  if (RC == &WebAssembly::EXTERNREFRegClass)
-    return WebAssembly::LOCAL_TEE_EXTERNREF;
   if (RC == &WebAssembly::WASMREFRegClass)
     return WebAssembly::LOCAL_TEE_WASMREF;
   llvm_unreachable("Unexpected register class");

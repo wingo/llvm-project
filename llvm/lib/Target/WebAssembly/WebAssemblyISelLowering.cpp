@@ -70,8 +70,6 @@ WebAssemblyTargetLowering::WebAssemblyTargetLowering(
     addRegisterClass(MVT::v2f64, &WebAssembly::V128RegClass);
   }
   if (Subtarget->hasReferenceTypes()) {
-    addRegisterClass(MVT::externref, &WebAssembly::EXTERNREFRegClass);
-    addRegisterClass(MVT::funcref, &WebAssembly::FUNCREFRegClass);
     addRegisterClass(MVT::wasmref, &WebAssembly::WASMREFRegClass);
   }
   // Compute derived properties from the register classes.
@@ -649,13 +647,13 @@ LowerCallResults(MachineInstr &CallResults, DebugLoc DL, MachineBasicBlock *BB,
     BB->insertAfter(MIB.getInstr()->getIterator(), Const0);
 
     Register RegFuncref =
-        MF.getRegInfo().createVirtualRegister(&WebAssembly::FUNCREFRegClass);
+        MF.getRegInfo().createVirtualRegister(&WebAssembly::WASMREFRegClass);
     MachineInstr *RefNull =
-        BuildMI(MF, DL, TII.get(WebAssembly::REF_NULL_FUNCREF), RegFuncref);
+        BuildMI(MF, DL, TII.get(WebAssembly::REF_NULL_WASMREF_FUNCREF), RegFuncref);
     BB->insertAfter(Const0->getIterator(), RefNull);
 
     MachineInstr *TableSet =
-        BuildMI(MF, DL, TII.get(WebAssembly::TABLE_SET_FUNCREF))
+        BuildMI(MF, DL, TII.get(WebAssembly::TABLE_SET_WASMREF))
             .addSym(Table)
             .addReg(RegZero)
             .addReg(RegFuncref);

@@ -165,10 +165,6 @@ wasm::ValType WebAssembly::regClassToValType(unsigned RC) {
     return wasm::ValType::F64;
   case WebAssembly::V128RegClassID:
     return wasm::ValType::V128;
-  case WebAssembly::FUNCREFRegClassID:
-    return wasm::ValType::FUNCREF;
-  case WebAssembly::EXTERNREFRegClassID:
-    return wasm::ValType::EXTERNREF;
   case WebAssembly::WASMREFRegClassID:
     return wasm::ValType::WASMREF;
   default:
