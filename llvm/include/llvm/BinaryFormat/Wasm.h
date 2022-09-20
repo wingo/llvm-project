@@ -432,10 +432,10 @@ struct ValType {
     EXTERNREF = WASM_TYPE_EXTERNREF,
   };
   TypeKind Kind;
-  int TypeIdx;
+  uint32_t TypeIdx;
   ValType() = default;
-  ValType(TypeKind K, int Idx = 0) : Kind(K), TypeIdx(Idx) {}
-  ValType(unsigned K, int Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
+  ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {}
+  ValType(unsigned K, uint32_t Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
   // FIXME: compare TypeIdx too
   bool operator==(const ValType o) const { return Kind == o.Kind; }
   bool operator==(const TypeKind o) const { return Kind == o; }
