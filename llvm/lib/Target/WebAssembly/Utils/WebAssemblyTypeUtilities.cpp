@@ -230,6 +230,6 @@ wasm::ValType WebAssembly::retrieveValTypeForWasmRef(const Module &M, unsigned A
   if (TyInfoStr == "funcref")
     return wasm::ValType::FUNCREF;
 
-
-  report_fatal_error("Unable to determine wasm::ValType for given wasmref");
+  report_fatal_error("Unable to determine wasm::ValType for given wasmref. "
+                     "Can't parse metadata.");
 }
