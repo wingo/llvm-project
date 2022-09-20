@@ -81,8 +81,68 @@ struct WasmLimits {
   uint64_t Maximum;
 };
 
+// Type immediate encodings used in various contexts.
+enum : unsigned {
+  WASM_TYPE_I32 = 0x7F,
+  WASM_TYPE_I64 = 0x7E,
+  WASM_TYPE_F32 = 0x7D,
+  WASM_TYPE_F64 = 0x7C,
+  WASM_TYPE_V128 = 0x7B,
+  WASM_TYPE_FUNCREF = 0x70,
+  WASM_TYPE_EXTERNREF = 0x6F,
+  WASM_TYPE_FUNC = 0x60,
+  WASM_TYPE_NORESULT = 0x40, // for blocks with no result values
+};
+
+// Represents the set of types a value can have.
+struct ValType {
+  enum TypeKind : uint32_t {
+    I32 = WASM_TYPE_I32,
+    I64 = WASM_TYPE_I64,
+    F32 = WASM_TYPE_F32,
+    F64 = WASM_TYPE_F64,
+    V128 = WASM_TYPE_V128,
+    FUNCREF = WASM_TYPE_FUNCREF,
+    EXTERNREF = WASM_TYPE_EXTERNREF,
+    IDX = 0
+  };
+  TypeKind Kind;
+  uint32_t TypeIdx;
+  ValType() = default;
+  ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {
+    if (K != IDX && Idx != 0)
+      report_fatal_error("Set a type index for a non-IDX type kind");
+  }
+  ValType(unsigned K, uint32_t Idx = 0)
+      : ValType(static_cast<TypeKind>(K), Idx) {}
+  bool operator==(const ValType o) const {
+    return Kind == o.Kind && TypeIdx == o.TypeIdx;
+  }
+  bool operator!=(const ValType o) const { return !(*this == o); }
+  // TODO: Remove this function. Provided as part of transitioning to
+  // getValue. Returns the uint8_t encoded ValType if the TypeKind is not IDX,
+  // otherwise reports a fatal error.
+  uint8_t getEncodedByte() const {
+    if (Kind == IDX)
+      report_fatal_error("Can't call getEncodedByte on type index");
+    return Kind;
+  }
+  // Returns the 33-bit signed integer representing the type.
+  int64_t getValue() const {
+    if (Kind == IDX)
+      return TypeIdx;
+    // Convert from the single byte encoded values to the logical negative s33
+    // value.
+    return -0x80LL + (uint32_t)Kind;
+  }
+};
+
+inline hash_code hash_value(const ValType &WVT) {
+  return hash_combine(WVT.Kind, WVT.TypeIdx);
+}
+
 struct WasmTableType {
-  uint8_t ElemType;
+  ValType ElemType;
   WasmLimits Limits;
 };
 
@@ -257,19 +317,6 @@ enum : unsigned {
   WASM_SEC_LAST_KNOWN = WASM_SEC_TAG,
 };
 
-// Type immediate encodings used in various contexts.
-enum : unsigned {
-  WASM_TYPE_I32 = 0x7F,
-  WASM_TYPE_I64 = 0x7E,
-  WASM_TYPE_F32 = 0x7D,
-  WASM_TYPE_F64 = 0x7C,
-  WASM_TYPE_V128 = 0x7B,
-  WASM_TYPE_FUNCREF = 0x70,
-  WASM_TYPE_EXTERNREF = 0x6F,
-  WASM_TYPE_FUNC = 0x60,
-  WASM_TYPE_NORESULT = 0x40, // for blocks with no result values
-};
-
 // Kinds of externals (for imports and exports).
 enum : unsigned {
   WASM_EXTERNAL_FUNCTION = 0x0,
@@ -420,52 +467,6 @@ enum : unsigned {
 };
 
 #undef WASM_RELOC
-
-// Represents the set of types a value can have.
-struct ValType {
-  enum TypeKind : uint32_t {
-    I32 = WASM_TYPE_I32,
-    I64 = WASM_TYPE_I64,
-    F32 = WASM_TYPE_F32,
-    F64 = WASM_TYPE_F64,
-    V128 = WASM_TYPE_V128,
-    FUNCREF = WASM_TYPE_FUNCREF,
-    EXTERNREF = WASM_TYPE_EXTERNREF,
-    IDX = 0
-  };
-  TypeKind Kind;
-  uint32_t TypeIdx;
-  ValType() = default;
-  ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {
-    if (K != IDX && Idx != 0)
-      report_fatal_error("Set a type index for a non-IDX type kind");
-  }
-  ValType(unsigned K, uint32_t Idx = 0) : ValType(static_cast<TypeKind>(K), Idx) {}
-  bool operator==(const ValType o) const {
-    return Kind == o.Kind && TypeIdx == o.TypeIdx;
-  }
-  bool operator!=(const ValType o) const { return !(*this == o); }
-  // TODO: Remove this function. Provided as part of transitioning to
-  // getValue. Returns the uint8_t encoded ValType if the TypeKind is not IDX,
-  // otherwise reports a fatal error.
-  uint8_t getEncodedByte() const {
-    if (Kind == IDX)
-      report_fatal_error("Can't call getEncodedByte on type index");
-    return Kind;
-  }
-  // Returns the 33-bit signed integer representing the type.
-  int64_t getValue() const {
-    if (Kind == IDX)
-      return TypeIdx;
-    // Convert from the single byte encoded values to the logical negative s33
-    // value.
-    return -0x80LL + (uint32_t)Kind;
-  }
-};
-
-inline hash_code hash_value(const ValType &WVT) {
-  return hash_combine(WVT.Kind, WVT.TypeIdx);
-}
 
 struct WasmSignature {
   SmallVector<ValType, 1> Returns;

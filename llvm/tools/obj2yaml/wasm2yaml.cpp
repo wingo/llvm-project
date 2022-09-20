@@ -43,7 +43,7 @@ static WasmYAML::Table makeTable(uint32_t Index,
                                  const wasm::WasmTableType &Type) {
   WasmYAML::Table T;
   T.Index = Index;
-  T.ElemType = Type.ElemType;
+  T.ElemType = Type.ElemType.getEncodedByte();
   T.TableLimits = makeLimits(Type.Limits);
   return T;
 }
