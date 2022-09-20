@@ -435,7 +435,7 @@ struct ValType {
   uint32_t TypeIdx;
   ValType() = default;
   ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {}
-  ValType(unsigned K, uint32_t Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
+  ValType(unsigned K, uint32_t Idx = 0) : ValType(static_cast<TypeKind>(K), Idx) {}
   bool operator==(const ValType o) const {
     return Kind == o.Kind && TypeIdx == o.TypeIdx;
   }
