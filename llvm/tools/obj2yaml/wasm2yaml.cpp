@@ -239,7 +239,7 @@ ErrorOr<WasmYAML::Object *> WasmDumper::dump() {
           Im.SigIndex = Import.SigIndex;
           break;
         case wasm::WASM_EXTERNAL_GLOBAL:
-          Im.GlobalImport.Type = Import.Global.Type;
+          Im.GlobalImport.Type = Import.Global.Type.getEncodedByte();
           Im.GlobalImport.Mutable = Import.Global.Mutable;
           break;
         case wasm::WASM_EXTERNAL_TAG:
@@ -296,7 +296,7 @@ ErrorOr<WasmYAML::Object *> WasmDumper::dump() {
       for (auto &Global : Obj.globals()) {
         WasmYAML::Global G;
         G.Index = Global.Index;
-        G.Type = Global.Type.Type;
+        G.Type = Global.Type.Type.getEncodedByte();
         G.Mutable = Global.Type.Mutable;
         G.Init.Extended = Global.InitExpr.Extended;
         if (Global.InitExpr.Extended) {

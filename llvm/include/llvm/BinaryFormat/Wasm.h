@@ -171,7 +171,7 @@ struct WasmInitExpr {
 };
 
 struct WasmGlobalType {
-  uint8_t Type;
+  ValType Type;
   bool Mutable;
 };
 

@@ -866,7 +866,7 @@ void WasmObjectWriter::writeImportSection(ArrayRef<wasm::WasmImport> Imports,
       encodeULEB128(Import.SigIndex, W->OS);
       break;
     case wasm::WASM_EXTERNAL_GLOBAL:
-      W->OS << char(Import.Global.Type);
+      encodeSLEB128(Import.Global.Type.getValue(), W->OS);
       W->OS << char(Import.Global.Mutable ? 1 : 0);
       break;
     case wasm::WASM_EXTERNAL_MEMORY:
@@ -929,13 +929,13 @@ void WasmObjectWriter::writeGlobalSection(ArrayRef<wasm::WasmGlobal> Globals) {
 
   encodeULEB128(Globals.size(), W->OS);
   for (const wasm::WasmGlobal &Global : Globals) {
-    encodeULEB128(Global.Type.Type, W->OS);
+    encodeSLEB128(Global.Type.Type.getValue(), W->OS);
     W->OS << char(Global.Type.Mutable);
     if (Global.InitExpr.Extended) {
       llvm_unreachable("extected init expressions not supported");
     } else {
       W->OS << char(Global.InitExpr.Inst.Opcode);
-      switch (Global.Type.Type) {
+      switch (Global.Type.Type.Kind) {
       case wasm::WASM_TYPE_I32:
         encodeSLEB128(0, W->OS);
         break;
@@ -1656,7 +1656,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
           Global.Type = WS.getGlobalType();
           Global.Index = NumGlobalImports + Globals.size();
           Global.InitExpr.Extended = false;
-          switch (Global.Type.Type) {
+          switch (Global.Type.Type.Kind) {
           case wasm::WASM_TYPE_I32:
             Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_I32_CONST;
             break;
