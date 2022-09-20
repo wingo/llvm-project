@@ -123,6 +123,8 @@ static char getInvokeSig(wasm::ValType VT) {
     return 'F';
   case wasm::ValType::EXTERNREF:
     return 'X';
+  case wasm::ValType::IDX:
+    report_fatal_error("Don't know how to handle wasm::ValtType::IDX");
   }
   llvm_unreachable("Unhandled wasm::ValType enum");
 }

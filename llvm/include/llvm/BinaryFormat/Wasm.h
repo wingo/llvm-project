@@ -430,11 +430,15 @@ struct ValType {
     V128 = WASM_TYPE_V128,
     FUNCREF = WASM_TYPE_FUNCREF,
     EXTERNREF = WASM_TYPE_EXTERNREF,
+    IDX = 0
   };
   TypeKind Kind;
   uint32_t TypeIdx;
   ValType() = default;
-  ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {}
+  ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {
+    if (K != IDX && Idx != 0)
+      report_fatal_error("Set a type index for a non-IDX type kind");
+  }
   ValType(unsigned K, uint32_t Idx = 0) : ValType(static_cast<TypeKind>(K), Idx) {}
   bool operator==(const ValType o) const {
     return Kind == o.Kind && TypeIdx == o.TypeIdx;
@@ -442,6 +446,8 @@ struct ValType {
   bool operator!=(const ValType o) const { return !(*this == o); }
   // FIXME: should return a sleb128.
   uint8_t encodeType() const {
+    if (Kind == IDX)
+      report_fatal_error("Encoding not implemented for type indices");
     return Kind;
   }
 };

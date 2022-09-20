@@ -34,6 +34,8 @@ std::string toString(ValType type) {
     return "funcref";
   case ValType::EXTERNREF:
     return "externref";
+  case ValType::IDX:
+    report_fatal_error("Don't know how to handle wasm::ValtType::IDX");
   }
   llvm_unreachable("Invalid wasm::ValType");
 }
