@@ -28,7 +28,7 @@ WebAssemblyTargetStreamer::WebAssemblyTargetStreamer(MCStreamer &S)
     : MCTargetStreamer(S) {}
 
 void WebAssemblyTargetStreamer::emitValueType(wasm::ValType Type) {
-  Streamer.emitIntValue(Type.encodeType(), 1);
+  Streamer.emitSLEB128IntValue(Type.getValue());
 }
 
 WebAssemblyTargetAsmStreamer::WebAssemblyTargetAsmStreamer(

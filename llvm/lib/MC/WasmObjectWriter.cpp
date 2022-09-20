@@ -325,7 +325,7 @@ private:
     W->OS.write(Buffer, sizeof(Buffer));
   }
 
-  void writeValueType(wasm::ValType Ty) { W->OS << Ty.encodeType(); }
+  void writeValueType(wasm::ValType Ty) { encodeSLEB128(Ty.getValue(), W->OS); }
 
   void writeTypeSection(ArrayRef<wasm::WasmSignature> Signatures);
   void writeImportSection(ArrayRef<wasm::WasmImport> Imports, uint64_t DataSize,

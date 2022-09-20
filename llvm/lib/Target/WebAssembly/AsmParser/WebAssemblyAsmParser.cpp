@@ -819,7 +819,8 @@ public:
       // Now set this symbol with the correct type.
       auto WasmSym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(SymName));
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
-      WasmSym->setGlobalType(wasm::WasmGlobalType{Type->encodeType(), Mutable});
+      WasmSym->setGlobalType(
+          wasm::WasmGlobalType{Type->getEncodedByte(), Mutable});
       // And emit the directive again.
       TOut.emitGlobalType(WasmSym);
       return expect(AsmToken::EndOfStatement, "EOL");
@@ -849,7 +850,7 @@ public:
       // symbol
       auto WasmSym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(SymName));
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-      wasm::WasmTableType Type = {ElemType->encodeType(), Limits};
+      wasm::WasmTableType Type = {ElemType->getEncodedByte(), Limits};
       WasmSym->setTableType(Type);
       TOut.emitTableType(WasmSym);
       return expect(AsmToken::EndOfStatement, "EOL");

@@ -121,8 +121,7 @@ void writeU64(raw_ostream &os, uint64_t number, const Twine &msg) {
 }
 
 void writeValueType(raw_ostream &os, ValType type, const Twine &msg) {
-  writeU8(os, type.encodeType(),
-          msg + "[type: " + toString(type) + "]");
+  writeSleb128(os, type.getValue(), msg + "[type: " + toString(type) + "]");
 }
 
 void writeSig(raw_ostream &os, const WasmSignature &sig) {

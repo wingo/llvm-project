@@ -18,6 +18,7 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/FormattedStream.h"
 
 namespace llvm {
 namespace wasm {
@@ -444,11 +445,21 @@ struct ValType {
     return Kind == o.Kind && TypeIdx == o.TypeIdx;
   }
   bool operator!=(const ValType o) const { return !(*this == o); }
-  // FIXME: should return a sleb128.
-  uint8_t encodeType() const {
+  // TODO: Remove this function. Provided as part of transitioning to
+  // getValue. Returns the uint8_t encoded ValType if the TypeKind is not IDX,
+  // otherwise reports a fatal error.
+  uint8_t getEncodedByte() const {
     if (Kind == IDX)
-      report_fatal_error("Encoding not implemented for type indices");
+      report_fatal_error("Can't call getEncodedByte on type index");
     return Kind;
+  }
+  // Returns the 33-bit signed integer representing the type.
+  int64_t getValue() const {
+    if (Kind == IDX)
+      return TypeIdx;
+    // Convert from the single byte encoded values to the logical negative s33
+    // value.
+    return -0x80LL + (uint32_t)Kind;
   }
 };
 

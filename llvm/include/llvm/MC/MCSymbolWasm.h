@@ -144,7 +144,7 @@ public:
     // Declare a table with element type VT and no limits (min size 0, no max
     // size).
     wasm::WasmLimits Limits = {wasm::WASM_LIMITS_FLAG_NONE, 0, 0};
-    setTableType({VT.encodeType(), Limits});
+    setTableType({VT.getEncodedByte(), Limits});
   }
 };
 
