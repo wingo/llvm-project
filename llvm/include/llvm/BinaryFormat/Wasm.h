@@ -436,8 +436,9 @@ struct ValType {
   ValType() = default;
   ValType(TypeKind K, uint32_t Idx = 0) : Kind(K), TypeIdx(Idx) {}
   ValType(unsigned K, uint32_t Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
-  // FIXME: compare TypeIdx too
-  bool operator==(const ValType o) const { return Kind == o.Kind; }
+  bool operator==(const ValType o) const {
+    return Kind == o.Kind && TypeIdx == o.TypeIdx;
+  }
   bool operator!=(const ValType o) const { return !(*this == o); }
   // FIXME: should return a sleb128.
   uint8_t encodeType() const {
@@ -446,8 +447,7 @@ struct ValType {
 };
 
 inline hash_code hash_value(const ValType &WVT) {
-  // FIXME: should hash_combine Kind and TypeIdx for a typeindex typekind.
-  return hash_combine(WVT.Kind);
+  return hash_combine(WVT.Kind, WVT.TypeIdx);
 }
 
 struct WasmSignature {
