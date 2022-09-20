@@ -438,9 +438,7 @@ struct ValType {
   ValType(unsigned K, uint32_t Idx = 0) : Kind(static_cast<TypeKind>(K)), TypeIdx(Idx) {}
   // FIXME: compare TypeIdx too
   bool operator==(const ValType o) const { return Kind == o.Kind; }
-  bool operator==(const TypeKind o) const { return Kind == o; }
   bool operator!=(const ValType o) const { return !(*this == o); }
-  bool operator!=(const TypeKind o) const { return !(*this == o); }
   // FIXME: should return a sleb128.
   uint8_t encodeType() const {
     return Kind;
