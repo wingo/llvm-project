@@ -224,11 +224,25 @@ wasm::ValType WebAssembly::retrieveValTypeForWasmRef(const Module &M, unsigned A
   if (!TyInfoMDStr)
     report_fatal_error("wasm.type_info metadata in unexpected format");
 
+  // TODO: implement "proper" parsing and split out to a separate function.
+  // Parsing of more complex types is only performed at this stage for
+  // validation purposes. The type won't be used until object emission.
   StringRef TyInfoStr = TyInfoMDStr->getString();
-  if (TyInfoStr == "externref")
-    return wasm::ValType::EXTERNREF;
-  if (TyInfoStr == "funcref")
-    return wasm::ValType::FUNCREF;
+  if (TyInfoStr.consume_front("array ")) {
+    Optional<wasm::ValType> Res = parseType(TyInfoStr);
+    // TODO: Consider whether to modify TypeID to account for some of the
+    // metadata type entries not resulting in entries in the output type
+    // table.
+    if (Res.has_value())
+      return wasm::ValType(wasm::ValType::IDX, TypeId);
+    else
+      report_fatal_error("Unable to parse array type");
+  } else {
+    if (TyInfoStr == "externref")
+      return wasm::ValType::EXTERNREF;
+    if (TyInfoStr == "funcref")
+      return wasm::ValType::FUNCREF;
+  }
 
   report_fatal_error("Unable to determine wasm::ValType for given wasmref. "
                      "Can't parse metadata.");
