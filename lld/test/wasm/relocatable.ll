@@ -64,7 +64,9 @@ define void @_start() {
 ; CHECK-NEXT:         Kind:            TABLE
 ; CHECK-NEXT:         Table:
 ; CHECK-NEXT:           Index:           0
-; CHECK-NEXT:           ElemType:        FUNCREF
+; CHECK-NEXT:           ElemType:
+; CHECK-NEXT:             Type:            func
+; CHECK-NEXT:             Nullable:        true
 ; CHECK-NEXT:           Limits:
 ; CHECK-NEXT:             Minimum:         0x4
 ; CHECK-NEXT:       - Module:          env

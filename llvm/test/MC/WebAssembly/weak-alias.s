@@ -95,7 +95,9 @@ alias_address:
 # CHECK-NEXT:         Kind:            TABLE
 # CHECK-NEXT:         Table:
 # CHECK-NEXT:           Index:           0
-# CHECK-NEXT:           ElemType:        FUNCREF
+# CHECK-NEXT:           ElemType:
+# CHECK-NEXT:             Type:            func
+# CHECK-NEXT:             Nullable:        true
 # CHECK-NEXT:           Limits:
 # CHECK-NEXT:             Minimum:         0x1
 # CHECK-NEXT:   - Type:            FUNCTION
@@ -262,7 +264,9 @@ alias_address:
 # REF-NEXT:         Kind:            TABLE
 # REF-NEXT:         Table:
 # REF-NEXT:           Index:           0
-# REF-NEXT:           ElemType:        FUNCREF
+# REF-NEXT:           ElemType:
+# REF-NEXT:             Type:            func
+# REF-NEXT:             Nullable:        true
 # REF-NEXT:           Limits:
 # REF-NEXT:             Minimum:         0x1
 # REF-NEXT:   - Type:            FUNCTION

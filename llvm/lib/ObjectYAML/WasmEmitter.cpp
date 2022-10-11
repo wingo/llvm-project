@@ -123,6 +123,27 @@ static int writeLimits(const WasmYAML::Limits &Lim, raw_ostream &OS) {
   return 0;
 }
 
+static int writeHeapType(const WasmYAML::HeapType &Ty, raw_ostream &OS) {
+  encodeSLEB128(Ty, OS);
+  return 0;
+}
+
+static int writeRefType(const WasmYAML::RefType &Ty, raw_ostream &OS) {
+  if (Ty.Nullable && Ty.Type.value == wasm::ValType::EXTERNREF) {
+    OS << wasm::RefType::EXTERN;
+    return 0;
+  } else if (Ty.Nullable && Ty.Type.value == wasm::ValType::FUNCREF) {
+    OS << wasm::RefType::FUNC;
+    return 0;
+  } else if (Ty.Nullable) {
+    OS << wasm::RefType::REF_NULL;
+    return writeHeapType(Ty.Type, OS);
+  } else {
+    OS << wasm::RefType::REF;
+    return writeHeapType(Ty.Type, OS);
+  }
+}
+
 void WasmWriter::reportError(const Twine &Msg) {
   ErrHandler(Msg);
   HasError = true;
@@ -407,7 +428,7 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
       writeLimits(Import.Memory, OS);
       break;
     case wasm::WASM_EXTERNAL_TABLE:
-      writeUint8(OS, Import.TableImport.ElemType);
+      writeRefType(Import.TableImport.ElemType, OS);
       writeLimits(Import.TableImport.TableLimits, OS);
       NumImportedTables++;
       break;
@@ -450,7 +471,7 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
       return;
     }
     ++ExpectedIndex;
-    writeUint8(OS, Table.ElemType);
+    writeRefType(Table.ElemType, OS);
     writeLimits(Table.TableLimits, OS);
   }
 }
@@ -501,8 +522,12 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
       // We only support active function table initializers, for which the elem
       // kind is specified to be written as 0x00 and interpreted to mean
       // "funcref".
-      if (Segment.ElemKind != uint32_t(wasm::ValType::FUNCREF)) {
-        reportError("unexpected elemkind: " + Twine(Segment.ElemKind));
+      if (Segment.ElemKind.Type.value != wasm::ValType(wasm::ValType::FUNCREF).getValue()) {
+        reportError("unexpected elemkind: " + Twine(Segment.ElemKind.Type));
+        return;
+      }
+      if (!Segment.ElemKind.Nullable) {
+        reportError("unexpected non-nullable elemkind");
         return;
       }
       const uint8_t ElemKind = 0;

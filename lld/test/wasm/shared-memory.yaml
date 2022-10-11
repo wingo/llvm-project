@@ -28,7 +28,9 @@ Sections:
         Kind:            TABLE
         Table:
           Index:           0
-          ElemType:        FUNCREF
+          ElemType:
+            Type:            func
+            Nullable:        true
           Limits:
             Minimum:         0x00000000
   - Type:            DATA

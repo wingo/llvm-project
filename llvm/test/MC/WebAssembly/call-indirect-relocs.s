@@ -51,7 +51,9 @@ empty_fref_table:
 # BIN-NEXT:   - Type:            TABLE
 # BIN-NEXT:     Tables:
 # BIN-NEXT:       - Index:           0
-# BIN-NEXT:         ElemType:        FUNCREF
+# BIN-NEXT:         ElemType:
+# BIN-NEXT:           Type:            func
+# BIN-NEXT:           Nullable:        true
 # BIN-NEXT:         Limits:
 # BIN-NEXT:           Minimum:         0x0
 # BIN-NEXT:   - Type:            CODE

@@ -86,12 +86,16 @@ template <> struct DenseMapInfo<wasm::WasmLimits, void> {
 // Traits for using WasmTableType in a DenseMap
 template <> struct DenseMapInfo<wasm::WasmTableType, void> {
   static wasm::WasmTableType getEmptyKey() {
+    wasm::ValType Invalid{UINT32_MAX, 0};
     return wasm::WasmTableType{
-        0, DenseMapInfo<wasm::WasmLimits, void>::getEmptyKey()};
+        wasm::RefType(wasm::HeapType(Invalid), false),
+        DenseMapInfo<wasm::WasmLimits, void>::getEmptyKey()};
   }
   static wasm::WasmTableType getTombstoneKey() {
+    wasm::ValType Invalid{UINT32_MAX, 0};
     return wasm::WasmTableType{
-        1, DenseMapInfo<wasm::WasmLimits, void>::getTombstoneKey()};
+        wasm::RefType(wasm::HeapType(Invalid), true),
+        DenseMapInfo<wasm::WasmLimits, void>::getTombstoneKey()};
   }
   static unsigned getHashValue(const wasm::WasmTableType &TableType) {
     return hash_combine(

@@ -96,10 +96,7 @@ inline bool isRefType(const Type *Ty) {
   return isFuncrefType(Ty) || isExternrefType(Ty) || isWasmRefType(Ty);
 }
 
-inline bool isRefType(wasm::ValType Type) {
-  // TODO: needs to consider type indices too.
-  return Type == wasm::ValType::EXTERNREF || Type == wasm::ValType::FUNCREF;
-}
+inline bool isRefType(wasm::ValType Type) { return !Type.isNumeric(); }
 
 wasm::ValType retrieveValTypeForWasmRef(const Module &M, unsigned AS);
 

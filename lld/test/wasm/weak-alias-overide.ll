@@ -37,7 +37,9 @@ entry:
 ; CHECK-NEXT:   - Type:            TABLE
 ; CHECK-NEXT:     Tables:
 ; CHECK-NEXT:       - Index:           0
-; CHECK-NEXT:         ElemType:        FUNCREF
+; CHECK-NEXT:          ElemType:
+; CHECK-NEXT:            Type:            func
+; CHECK-NEXT:            Nullable:        true
 ; CHECK-NEXT:         Limits:
 ; CHECK-NEXT:           Flags:           [ HAS_MAX ]
 ; CHECK-NEXT:           Minimum:         0x3

@@ -112,19 +112,27 @@ table_fill:
 #      BIN:  - Type:            TABLE
 # BIN-NEXT:    Tables:
 # BIN-NEXT:      - Index:           0
-# BIN-NEXT:        ElemType:        EXTERNREF
+# BIN-NEXT:        ElemType:
+# BIN-NEXT:          Type:            extern
+# BIN-NEXT:          Nullable:        true
 # BIN-NEXT:        Limits:
 # BIN-NEXT:          Minimum:         0x0
 # BIN-NEXT:      - Index:           1
-# BIN-NEXT:        ElemType:        FUNCREF
+# BIN-NEXT:        ElemType:
+# BIN-NEXT:          Type:            func
+# BIN-NEXT:          Nullable:        true
 # BIN-NEXT:        Limits:
 # BIN-NEXT:          Minimum:         0x0
 # BIN-NEXT:      - Index:           2
-# BIN-NEXT:        ElemType:        FUNCREF
+# BIN-NEXT:        ElemType:
+# BIN-NEXT:          Type:            func
+# BIN-NEXT:          Nullable:        true
 # BIN-NEXT:        Limits:
 # BIN-NEXT:          Minimum:         0x2A
 # BIN-NEXT:      - Index:           3
-# BIN-NEXT:        ElemType:        FUNCREF
+# BIN-NEXT:        ElemType:
+# BIN-NEXT:          Type:            func
+# BIN-NEXT:          Nullable:        true
 # BIN-NEXT:        Limits:
 # BIN-NEXT:          Flags:           [ HAS_MAX ]
 # BIN-NEXT:          Minimum:         0x2A

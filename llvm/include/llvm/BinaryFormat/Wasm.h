@@ -135,14 +135,82 @@ struct ValType {
     // value.
     return -0x80LL + (uint32_t)Kind;
   }
+  static ValType FromValue(int64_t Value) {
+    if (Value >= 0) {
+      assert(Value <= UINT32_MAX);
+      return ValType(IDX, Value);
+    } else {
+      assert(Value > -0x80LL);
+      return ValType(Value + 0x80LL);
+    }
+  }
+  bool isNumeric() const {
+    switch (Kind) {
+    case I32:
+    case I64:
+    case F32:
+    case F64:
+    case V128:
+      return true;
+    default:
+      // Assume that indexed types are reference-typed.
+      return false;
+    }
+  }
 };
 
 inline hash_code hash_value(const ValType &WVT) {
   return hash_combine(WVT.Kind, WVT.TypeIdx);
 }
 
+// Represents a kind of object in the host-managed reference-typed store.
+struct HeapType {
+  ValType VT;
+
+  HeapType() = default;
+  explicit HeapType(ValType VT) : VT(VT) { assert(!VT.isNumeric()); }
+
+  static HeapType Extern() { return HeapType(ValType(ValType::EXTERNREF)); }
+  static HeapType Func() { return HeapType(ValType(ValType::FUNCREF)); }
+
+  bool operator==(const HeapType &HT) const { return VT == HT.VT; }
+  bool operator!=(const HeapType &HT) const { return !(*this == HT); }
+};
+
+inline hash_code hash_value(const HeapType &WHT) {
+  return hash_value(WHT.VT);
+}
+
+// Represents a reference to a heap type, possibly nullable.
+struct RefType {
+  enum : uint8_t {
+    EXTERN = 0x6F,
+    FUNC = 0x70,
+    REF = 0x6B,
+    REF_NULL = 0x6C
+  };
+
+  HeapType HT;
+  bool Nullable;
+
+  RefType() = default;
+  explicit RefType(HeapType HT, bool Nullable) : HT(HT), Nullable(Nullable) {}
+
+  static RefType Extern() { return RefType(HeapType::Extern(), true); }
+  static RefType Func() { return RefType(HeapType::Func(), true); }
+
+  bool operator==(const RefType &RT) const {
+    return Nullable == RT.Nullable && HT == RT.HT;
+  }
+  bool operator!=(const RefType &RT) const { return !(*this == RT); }
+};
+
+inline hash_code hash_value(const RefType &WRT) {
+  return hash_combine(WRT.Nullable, WRT.HT);
+}
+
 struct WasmTableType {
-  ValType ElemType;
+  RefType ElemType;
   WasmLimits Limits;
 };
 
@@ -160,6 +228,7 @@ struct WasmInitExprMVP {
     uint32_t Float32;
     uint64_t Float64;
     uint32_t Global;
+    HeapType HeapTy;
   } Value;
 };
 
@@ -236,7 +305,7 @@ struct WasmDataSegment {
 struct WasmElemSegment {
   uint32_t Flags;
   uint32_t TableNumber;
-  uint8_t ElemKind;
+  RefType ElemKind;
   WasmInitExpr Offset;
   std::vector<uint32_t> Functions;
 };

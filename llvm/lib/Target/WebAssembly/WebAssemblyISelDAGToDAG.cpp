@@ -181,20 +181,21 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
           *MF.getMMI().getModule(), TypeId + 257);
       // FIXME: Temporary hack - should actually have a generic ref.null
       // instruction.
+      unsigned NewNode;
       switch (WVT.Kind) {
+#define REPLACE_REF_NULL(STEM)                                          \
+        case wasm::ValType::STEM:                                       \
+          NewNode = WebAssembly::REF_NULL_WASMREF_##STEM;               \
+          break
+        REPLACE_REF_NULL(EXTERNREF);
+        REPLACE_REF_NULL(FUNCREF);
+#undef REPLACE_REF_NULL
       default:
         report_fatal_error("Unexpected wasm::ValType encountered");
-      case wasm::ValType::EXTERNREF:
-        ReplaceNode(Node, CurDAG->getMachineNode(
-                              WebAssembly::REF_NULL_WASMREF_EXTERNREF, DL,
-                              MVT::wasmref));
-        return;
-      case wasm::ValType::FUNCREF:
-        ReplaceNode(
-            Node, CurDAG->getMachineNode(WebAssembly::REF_NULL_WASMREF_FUNCREF,
-                                         DL, MVT::wasmref));
         return;
       }
+      ReplaceNode(Node, CurDAG->getMachineNode(NewNode, DL, MVT::wasmref));
+      return;
     }
     }
     break;

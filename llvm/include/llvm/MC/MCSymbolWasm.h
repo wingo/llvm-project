@@ -112,11 +112,11 @@ public:
 
   bool isFunctionTable() const {
     return isTable() && hasTableType() &&
-           getTableType().ElemType == wasm::WASM_TYPE_FUNCREF;
+           getTableType().ElemType == wasm::RefType::Func();
   }
   void setFunctionTable() {
     setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-    setTableType(wasm::ValType::FUNCREF);
+    setTableType(wasm::RefType::Func());
   }
 
   void setUsedInGOT() const { IsUsedInGOT = true; }
@@ -140,11 +140,11 @@ public:
     return TableType.value();
   }
   void setTableType(wasm::WasmTableType TT) { TableType = TT; }
-  void setTableType(wasm::ValType VT) {
-    // Declare a table with element type VT and no limits (min size 0, no max
+  void setTableType(wasm::RefType RT) {
+    // Declare a table with element type RT and no limits (min size 0, no max
     // size).
     wasm::WasmLimits Limits = {wasm::WASM_LIMITS_FLAG_NONE, 0, 0};
-    setTableType({VT, Limits});
+    setTableType({RT, Limits});
   }
 };
 

@@ -204,7 +204,8 @@ bool WebAssemblyAsmTypeCheck::getTable(SMLoc ErrorLoc, const MCInst &Inst,
     return typeError(ErrorLoc, StringRef("symbol ") + WasmSym->getName() +
                                    " missing .tabletype");
   // FIXME: Need to handle type indexes.
-  Type = wasm::ValType((WasmSym->getTableType().ElemType));
+  // FIXME: Need to allow ValType to encode a RefType.
+  Type = WasmSym->getTableType().ElemType.HT.VT;
   return false;
 }
 

@@ -6,7 +6,9 @@ Sections:
   - Type:            TABLE
     Tables:         
       - Index:           0
-        ElemType:        FUNCREF
+        ElemType:
+          Type:            func
+          Nullable:        true
         Limits:
           Flags:           [ HAS_MAX ]
           Minimum:         0x00000010
@@ -19,7 +21,9 @@ Sections:
 # CHECK:  - Type:            TABLE
 # CHECK:    Tables:         
 # CHECK:      - Index:           0
-# CHECK:        ElemType:        FUNCREF
+# CHECK:        ElemType:
+# CHECK:          Type:            func
+# CHECK:          Nullable:        true
 # CHECK:        Limits:
 # CHECK:          Flags:           [ HAS_MAX ]
 # CHECK:          Minimum:         0x10

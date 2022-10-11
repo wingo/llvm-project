@@ -69,9 +69,30 @@ static std::string toString(const llvm::wasm::WasmLimits &limits) {
   return ret;
 }
 
+static std::string toString(const llvm::wasm::HeapType &ty) {
+  std::string ret = toString(ty.VT);
+  size_t len = ret.length();
+  // Trim off "ref" suffix, if any.
+  if (len > 3 && ret.substr(len - 3, 3) == "ref")
+    ret.resize(len - 3);
+  return ret;
+}
+
+static std::string toString(const llvm::wasm::RefType &ty) {
+  if (ty.Nullable && ty.HT.VT.Kind != llvm::wasm::ValType::IDX)
+    return toString(ty.HT.VT);
+
+  std::string ret = "(ref ";
+  if (!ty.Nullable)
+    ret += "null ";
+  ret += toString(ty.HT);
+  ret += ")";
+  return ret;
+}
+
 std::string toString(const WasmTableType &type) {
   SmallString<128> ret("");
-  return "type=" + toString(static_cast<ValType>(type.ElemType)) +
+  return "type=" + toString(type.ElemType) +
          "; limits=[" + toString(type.Limits) + "]";
 }
 
@@ -122,6 +143,26 @@ void writeU64(raw_ostream &os, uint64_t number, const Twine &msg) {
 
 void writeValueType(raw_ostream &os, ValType type, const Twine &msg) {
   writeSleb128(os, type.getValue(), msg + "[type: " + toString(type) + "]");
+}
+
+void writeHeapType(raw_ostream &os, HeapType type, const Twine &msg) {
+  writeValueType(os, type.VT, msg);
+}
+
+void writeRefType(raw_ostream &os, RefType type, const Twine &msg) {
+  if (type == RefType::Extern()) {
+    debugWrite(os.tell(), msg + "externref");
+    os << RefType::EXTERN;
+  } else if (type == RefType::Func()) {
+    debugWrite(os.tell(), msg + "funcref");
+    os << RefType::FUNC;
+  } else if (type.Nullable) {
+    os << RefType::REF_NULL;
+    writeHeapType(os, type.HT, msg);
+  } else {
+    os << RefType::REF;
+    writeHeapType(os, type.HT, msg + "(not null)");
+  }
 }
 
 void writeSig(raw_ostream &os, const WasmSignature &sig) {
@@ -205,7 +246,7 @@ void writeGlobalType(raw_ostream &os, const WasmGlobalType &type) {
 }
 
 void writeTableType(raw_ostream &os, const WasmTableType &type) {
-  writeValueType(os, ValType(type.ElemType), "table type");
+  writeRefType(os, type.ElemType, "table type");
   writeLimits(os, type.Limits);
 }
 

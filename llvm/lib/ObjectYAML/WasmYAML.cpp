@@ -303,6 +303,11 @@ void MappingTraits<WasmYAML::Signature>::mapping(
   IO.mapRequired("ReturnTypes", Signature.ReturnTypes);
 }
 
+void MappingTraits<WasmYAML::RefType>::mapping(IO &IO, WasmYAML::RefType &RT) {
+  IO.mapRequired("Type", RT.Type);
+  IO.mapRequired("Nullable", RT.Nullable);
+}
+
 void MappingTraits<WasmYAML::Table>::mapping(IO &IO, WasmYAML::Table &Table) {
   IO.mapRequired("Index", Table.Index);
   IO.mapRequired("ElemType", Table.ElemType);
@@ -447,8 +452,9 @@ void MappingTraits<WasmYAML::InitExpr>::mapping(IO &IO,
       IO.mapRequired("Index", Expr.Inst.Value.Global);
       break;
     case wasm::WASM_OPCODE_REF_NULL: {
-      WasmYAML::ValueType Ty = wasm::WASM_TYPE_EXTERNREF;
+      WasmYAML::HeapType Ty = Expr.Inst.Value.HeapTy.VT.getValue();
       IO.mapRequired("Type", Ty);
+      Expr.Inst.Value.HeapTy.VT = wasm::ValType::FromValue(Ty);
       break;
     }
     }
@@ -625,12 +631,14 @@ void ScalarEnumerationTraits<WasmYAML::Opcode>::enumeration(
 #undef ECase
 }
 
-void ScalarEnumerationTraits<WasmYAML::TableType>::enumeration(
-    IO &IO, WasmYAML::TableType &Type) {
-#define ECase(X) IO.enumCase(Type, #X, wasm::WASM_TYPE_##X);
-  ECase(FUNCREF);
-  ECase(EXTERNREF);
+void ScalarEnumerationTraits<WasmYAML::HeapType>::enumeration(
+    IO &IO, WasmYAML::HeapType &Type) {
+#define ECase(x, X) \
+    IO.enumCase(Type, #x, WasmYAML::HeapType(wasm::ValType(wasm::ValType::X).getValue()))
+  ECase(func, FUNCREF);
+  ECase(extern, EXTERNREF);
 #undef ECase
+  IO.enumFallback<Hex32>(Type);
 }
 
 void ScalarEnumerationTraits<WasmYAML::RelocType>::enumeration(

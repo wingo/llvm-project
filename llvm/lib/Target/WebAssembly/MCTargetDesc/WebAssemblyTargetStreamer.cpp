@@ -79,9 +79,9 @@ void WebAssemblyTargetAsmStreamer::emitGlobalType(const MCSymbolWasm *Sym) {
 void WebAssemblyTargetAsmStreamer::emitTableType(const MCSymbolWasm *Sym) {
   assert(Sym->isTable());
   const wasm::WasmTableType &Type = Sym->getTableType();
-  // FIXME: handle type indexes.
+  // FIXME: handle type indexes and non-nullable refs.
   OS << "\t.tabletype\t" << Sym->getName() << ", "
-     << WebAssembly::typeToString(wasm::ValType(Type.ElemType));
+     << WebAssembly::typeToString(Type.ElemType.HT.VT);
   bool HasMaximum = Type.Limits.Flags & wasm::WASM_LIMITS_FLAG_HAS_MAX;
   if (Type.Limits.Minimum != 0 || HasMaximum) {
     OS << ", " << Type.Limits.Minimum;

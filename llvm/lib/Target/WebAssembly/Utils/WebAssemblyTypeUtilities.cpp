@@ -174,33 +174,37 @@ void WebAssembly::wasmSymbolSetType(const Module &M, MCSymbolWasm *Sym,
   // they reach this point as aggregate Array types with an element type
   // that is a reference type.
   // FIXME: Will need updating to handle type indexes.
-  wasm::ValType::TypeKind ValKind;
+  wasm::ValType ValTy;
   bool IsTable = false;
   if (GlobalVT->isArrayTy() &&
       WebAssembly::isRefType(GlobalVT->getArrayElementType())) {
     IsTable = true;
     const Type *ElTy = GlobalVT->getArrayElementType();
     if (WebAssembly::isExternrefType(ElTy))
-      ValKind = wasm::ValType::EXTERNREF;
+      ValTy = wasm::ValType(wasm::ValType::EXTERNREF);
     else if (WebAssembly::isFuncrefType(ElTy))
-      ValKind = wasm::ValType::FUNCREF;
+      ValTy = wasm::ValType(wasm::ValType::FUNCREF);
     else if (WebAssembly::isWasmRefType(ElTy))
-      ValKind = retrieveValTypeForWasmRef(M, ElTy->getPointerAddressSpace()).Kind;
+      ValTy = retrieveValTypeForWasmRef(M, ElTy->getPointerAddressSpace());
     else
       report_fatal_error("unhandled reference type");
   } else if (VTs.size() == 1) {
     if (VTs[0] == MVT::wasmref)
-      ValKind = retrieveValTypeForWasmRef(M, GlobalVT->getPointerAddressSpace()).Kind;
+      ValTy = retrieveValTypeForWasmRef(M, GlobalVT->getPointerAddressSpace());
     else
-      ValKind = WebAssembly::toValType(VTs[0]).Kind;
+      ValTy = WebAssembly::toValType(VTs[0]);
   } else
     report_fatal_error("Aggregate globals not yet implemented");
 
   if (IsTable) {
     Sym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-    Sym->setTableType(ValKind);
+    // FIXME: Allow non-nullable table types?
+    bool Nullable = true;
+    Sym->setTableType(wasm::RefType(wasm::HeapType(ValTy), Nullable));
   } else {
     Sym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
+    // FIXME: Allow non-nullable reftyped globals?
+    uint8_t ValKind = ValTy.Kind;
     Sym->setGlobalType(wasm::WasmGlobalType{uint8_t(ValKind), /*Mutable=*/true});
   }
 }

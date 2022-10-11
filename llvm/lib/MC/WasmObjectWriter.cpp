@@ -326,6 +326,20 @@ private:
   }
 
   void writeValueType(wasm::ValType Ty) { encodeSLEB128(Ty.getValue(), W->OS); }
+  void writeHeapType(wasm::HeapType Ty) { writeValueType(Ty.VT); }
+  void writeRefType(wasm::RefType Ty) {
+    if (Ty.Nullable && Ty.HT == wasm::HeapType::Extern()) {
+      W->OS << wasm::RefType::EXTERN;
+    } else if (Ty.Nullable && Ty.HT == wasm::HeapType::Func()) {
+      W->OS << wasm::RefType::FUNC;
+    } else if (Ty.Nullable) {
+      W->OS << wasm::RefType::REF_NULL;
+      writeHeapType(Ty.HT);
+    } else {
+      W->OS << wasm::RefType::REF;
+      writeHeapType(Ty.HT);
+    }
+  }
 
   void writeTypeSection(ArrayRef<wasm::WasmSignature> Signatures);
   void writeImportSection(ArrayRef<wasm::WasmImport> Imports, uint64_t DataSize,
@@ -874,7 +888,7 @@ void WasmObjectWriter::writeImportSection(ArrayRef<wasm::WasmImport> Imports,
       encodeULEB128(NumPages, W->OS); // initial
       break;
     case wasm::WASM_EXTERNAL_TABLE:
-      encodeSLEB128(Import.Table.ElemType.getValue(), W->OS);
+      writeRefType(Import.Table.ElemType);
       encodeULEB128(0, W->OS);           // flags
       encodeULEB128(NumElements, W->OS); // initial
       break;
@@ -935,24 +949,27 @@ void WasmObjectWriter::writeGlobalSection(ArrayRef<wasm::WasmGlobal> Globals) {
       llvm_unreachable("extected init expressions not supported");
     } else {
       W->OS << char(Global.InitExpr.Inst.Opcode);
-      switch (Global.Type.Type.Kind) {
-      case wasm::WASM_TYPE_I32:
-        encodeSLEB128(0, W->OS);
-        break;
-      case wasm::WASM_TYPE_I64:
-        encodeSLEB128(0, W->OS);
-        break;
-      case wasm::WASM_TYPE_F32:
-        writeI32(0);
-        break;
-      case wasm::WASM_TYPE_F64:
-        writeI64(0);
-        break;
-      case wasm::WASM_TYPE_EXTERNREF:
-        writeValueType(wasm::ValType::EXTERNREF);
+      switch (Global.InitExpr.Inst.Opcode) {
+      case wasm::WASM_OPCODE_REF_NULL:
+        writeHeapType(Global.InitExpr.Inst.Value.HeapTy);
         break;
       default:
-        llvm_unreachable("unexpected type");
+        switch (Global.Type.Type.Kind) {
+        case wasm::WASM_TYPE_I32:
+          encodeSLEB128(0, W->OS);
+          break;
+        case wasm::WASM_TYPE_I64:
+          encodeSLEB128(0, W->OS);
+          break;
+        case wasm::WASM_TYPE_F32:
+          writeI32(0);
+          break;
+        case wasm::WASM_TYPE_F64:
+          writeI64(0);
+          break;
+        default:
+          llvm_unreachable("unexpected type");
+        }
       }
     }
     W->OS << char(wasm::WASM_OPCODE_END);
@@ -970,7 +987,7 @@ void WasmObjectWriter::writeTableSection(ArrayRef<wasm::WasmTable> Tables) {
 
   encodeULEB128(Tables.size(), W->OS);
   for (const wasm::WasmTable &Table : Tables) {
-    encodeSLEB128(Table.Type.ElemType.getValue(), W->OS);
+    writeRefType(Table.Type.ElemType);
     encodeULEB128(Table.Type.Limits.Flags, W->OS);
     encodeULEB128(Table.Type.Limits.Minimum, W->OS);
     if (Table.Type.Limits.Flags & wasm::WASM_LIMITS_FLAG_HAS_MAX)
@@ -1656,24 +1673,27 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
           Global.Type = WS.getGlobalType();
           Global.Index = NumGlobalImports + Globals.size();
           Global.InitExpr.Extended = false;
-          switch (Global.Type.Type.Kind) {
-          case wasm::WASM_TYPE_I32:
-            Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_I32_CONST;
-            break;
-          case wasm::WASM_TYPE_I64:
-            Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_I64_CONST;
-            break;
-          case wasm::WASM_TYPE_F32:
-            Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_F32_CONST;
-            break;
-          case wasm::WASM_TYPE_F64:
-            Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_F64_CONST;
-            break;
-          case wasm::WASM_TYPE_EXTERNREF:
+          if (Global.Type.Type.isNumeric()) {
+            switch (Global.Type.Type.Kind) {
+            case wasm::WASM_TYPE_I32:
+              Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_I32_CONST;
+              break;
+            case wasm::WASM_TYPE_I64:
+              Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_I64_CONST;
+              break;
+            case wasm::WASM_TYPE_F32:
+              Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_F32_CONST;
+              break;
+            case wasm::WASM_TYPE_F64:
+              Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_F64_CONST;
+              break;
+            default:
+              llvm_unreachable("unexpected type");
+            }
+          } else {
             Global.InitExpr.Inst.Opcode = wasm::WASM_OPCODE_REF_NULL;
-            break;
-          default:
-            llvm_unreachable("unexpected type");
+            Global.InitExpr.Inst.Value.HeapTy =
+                wasm::HeapType(Global.Type.Type);
           }
           assert(WasmIndices.count(&WS) == 0);
           WasmIndices[&WS] = Global.Index;

@@ -39,11 +39,15 @@ static WasmYAML::Limits makeLimits(const wasm::WasmLimits &Limits) {
   return L;
 }
 
+static WasmYAML::RefType makeRefType(const wasm::RefType &Ty) {
+  return WasmYAML::RefType{Ty.HT.VT.getValue(), Ty.Nullable};
+}
+
 static WasmYAML::Table makeTable(uint32_t Index,
                                  const wasm::WasmTableType &Type) {
   WasmYAML::Table T;
   T.Index = Index;
-  T.ElemType = Type.ElemType.getEncodedByte();
+  T.ElemType = makeRefType(Type.ElemType);
   T.TableLimits = makeLimits(Type.Limits);
   return T;
 }
@@ -333,7 +337,7 @@ ErrorOr<WasmYAML::Object *> WasmDumper::dump() {
         WasmYAML::ElemSegment Seg;
         Seg.Flags = Segment.Flags;
         Seg.TableNumber = Segment.TableNumber;
-        Seg.ElemKind = Segment.ElemKind;
+        Seg.ElemKind = makeRefType(Segment.ElemKind);
         Seg.Offset.Extended = Segment.Offset.Extended;
         if (Seg.Offset.Extended) {
           Seg.Offset.Body = yaml::BinaryRef(Segment.Offset.Body);

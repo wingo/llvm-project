@@ -109,6 +109,16 @@ static uint64_t readULEB128(WasmObjectFile::ReadContext &Ctx) {
   return Result;
 }
 
+static int64_t readSLEB128(WasmObjectFile::ReadContext &Ctx) {
+  unsigned Count;
+  const char *Error = nullptr;
+  int64_t Result = decodeSLEB128(Ctx.Ptr, &Count, Ctx.End, &Error);
+  if (Error)
+    report_fatal_error(Error);
+  Ctx.Ptr += Count;
+  return Result;
+}
+
 static StringRef readString(WasmObjectFile::ReadContext &Ctx) {
   uint32_t StringLen = readULEB128(Ctx);
   if (Ctx.Ptr + StringLen > Ctx.End)
@@ -162,6 +172,44 @@ static uint8_t readOpcode(WasmObjectFile::ReadContext &Ctx) {
   return readUint8(Ctx);
 }
 
+static wasm::HeapType readHeapType(WasmObjectFile::ReadContext &Ctx) {
+  int64_t Value = readSLEB128(Ctx);
+
+  if (0 <= Value && Value <= UINT32_MAX) {
+    // An indexed type.
+    return wasm::HeapType(wasm::ValType::FromValue(Value));
+  }
+
+  if (-0x80LL <= Value && Value < 0) {
+    wasm::ValType VT = wasm::ValType::FromValue(Value);
+    switch (VT.Kind) {
+    case wasm::ValType::FUNCREF:
+    case wasm::ValType::EXTERNREF:
+      return wasm::HeapType(VT);
+    default:
+      break;
+    }
+  }
+
+  report_fatal_error("invalid heap type: " /* + llvm::to_string(Value) */);
+  return wasm::HeapType();
+}
+
+static wasm::RefType readRefType(WasmObjectFile::ReadContext &Ctx) {
+  uint8_t Byte = readUint8(Ctx);
+  switch (Byte) {
+    case wasm::RefType::EXTERN: return wasm::RefType::Extern();
+    case wasm::RefType::FUNC: return wasm::RefType::Func();
+    case wasm::RefType::REF:
+      return wasm::RefType(readHeapType(Ctx), false);
+    case wasm::RefType::REF_NULL:
+      return wasm::RefType(readHeapType(Ctx), true);
+    default:
+      report_fatal_error("invalid reftype byte");
+      return wasm::RefType();
+  }
+}
+
 static Error readInitExpr(wasm::WasmInitExpr &Expr,
                           WasmObjectFile::ReadContext &Ctx) {
   auto Start = Ctx.Ptr;
@@ -184,14 +232,9 @@ static Error readInitExpr(wasm::WasmInitExpr &Expr,
   case wasm::WASM_OPCODE_GLOBAL_GET:
     Expr.Inst.Value.Global = readULEB128(Ctx);
     break;
-  case wasm::WASM_OPCODE_REF_NULL: {
-    wasm::ValType::TypeKind Ty = static_cast<wasm::ValType::TypeKind>(readULEB128(Ctx));
-    if (Ty != wasm::ValType::EXTERNREF) {
-      return make_error<GenericBinaryError>("invalid type for ref.null",
-                                            object_error::parse_failed);
-    }
+  case wasm::WASM_OPCODE_REF_NULL:
+    Expr.Inst.Value.HeapTy = readHeapType(Ctx);
     break;
-  }
   default:
     Expr.Extended = true;
   }
@@ -247,7 +290,7 @@ static wasm::WasmLimits readLimits(WasmObjectFile::ReadContext &Ctx) {
 
 static wasm::WasmTableType readTableType(WasmObjectFile::ReadContext &Ctx) {
   wasm::WasmTableType TableType;
-  TableType.ElemType = readUint8(Ctx);
+  TableType.ElemType = readRefType(Ctx);
   TableType.Limits = readLimits(Ctx);
   return TableType;
 }
@@ -1134,16 +1177,10 @@ Error WasmObjectFile::parseImportSection(ReadContext &Ctx) {
       if (Im.Memory.Flags & wasm::WASM_LIMITS_FLAG_IS_64)
         HasMemory64 = true;
       break;
-    case wasm::WASM_EXTERNAL_TABLE: {
+    case wasm::WASM_EXTERNAL_TABLE:
       Im.Table = readTableType(Ctx);
       NumImportedTables++;
-      auto ElemType = Im.Table.ElemType;
-      if (ElemType != wasm::WASM_TYPE_FUNCREF &&
-          ElemType != wasm::WASM_TYPE_EXTERNREF)
-        return make_error<GenericBinaryError>("invalid table element type",
-                                              object_error::parse_failed);
       break;
-    }
     case wasm::WASM_EXTERNAL_TAG:
       NumImportedTags++;
       if (readUint8(Ctx) != 0) // Reserved 'attribute' field
@@ -1194,12 +1231,6 @@ Error WasmObjectFile::parseTableSection(ReadContext &Ctx) {
     T.Type = readTableType(Ctx);
     T.Index = NumImportedTables + Tables.size();
     Tables.push_back(T);
-    auto ElemType = Tables.back().Type.ElemType;
-    if (ElemType != wasm::WASM_TYPE_FUNCREF &&
-        ElemType != wasm::WASM_TYPE_EXTERNREF) {
-      return make_error<GenericBinaryError>("invalid table element type",
-                                            object_error::parse_failed);
-    }
   }
   if (Ctx.Ptr != Ctx.End)
     return make_error<GenericBinaryError>("table section ended prematurely",
@@ -1465,21 +1496,17 @@ Error WasmObjectFile::parseElemSection(ReadContext &Ctx) {
     }
 
     if (Segment.Flags & wasm::WASM_ELEM_SEGMENT_MASK_HAS_ELEM_KIND) {
-      Segment.ElemKind = readUint8(Ctx);
       if (Segment.Flags & wasm::WASM_ELEM_SEGMENT_HAS_INIT_EXPRS) {
-        if (Segment.ElemKind != uint8_t(wasm::ValType::FUNCREF) &&
-            Segment.ElemKind != uint8_t(wasm::ValType::EXTERNREF)) {
-          return make_error<GenericBinaryError>("invalid reference type",
-                                                object_error::parse_failed);
-        }
+        Segment.ElemKind = readRefType(Ctx);
       } else {
-        if (Segment.ElemKind != 0)
-          return make_error<GenericBinaryError>("invalid elemtype",
+        uint8_t ElemKind = readUint8(Ctx);
+        if (ElemKind != 0)
+          return make_error<GenericBinaryError>("invalid elemkind",
                                                 object_error::parse_failed);
-        Segment.ElemKind = uint8_t(wasm::ValType::FUNCREF);
+        Segment.ElemKind = wasm::RefType::Func();
       }
     } else {
-      Segment.ElemKind = uint8_t(wasm::ValType::FUNCREF);
+      Segment.ElemKind = wasm::RefType::Func();
     }
 
     if (Segment.Flags & wasm::WASM_ELEM_SEGMENT_HAS_INIT_EXPRS)

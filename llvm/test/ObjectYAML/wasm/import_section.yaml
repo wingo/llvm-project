@@ -33,7 +33,9 @@ Sections:
         Kind:            TABLE
         Table:
           Index:         0
-          ElemType:      FUNCREF
+          ElemType:
+            Type:            func
+            Nullable:        true
           Limits:
             Flags:           [ HAS_MAX ]
             Minimum:         0x00000020
@@ -65,7 +67,9 @@ Sections:
 # CHECK:         Field:           imported_table
 # CHECK:         Kind:            TABLE
 # CHECK:         Table:
-# CHECK:           ElemType:      FUNCREF
+# CHECK:           ElemType:
+# CHECK:             Type:            func
+# CHECK:             Nullable:        true
 # CHECK:           Limits:
 # CHECK:             Flags:           [ HAS_MAX ]
 # CHECK:             Minimum:         0x20

@@ -52,7 +52,9 @@ call_indirect_explicit_tables:
 # CHECK-NEXT:         Kind:            TABLE
 # CHECK-NEXT:         Table:
 # CHECK-NEXT:           Index:           0
-# CHECK-NEXT:           ElemType:        FUNCREF
+# CHECK-NEXT:           ElemType:
+# CHECK-NEXT:             Type:            func
+# CHECK-NEXT:             Nullable:        true
 # CHECK-NEXT:           Limits:
 # CHECK-NEXT:             Minimum:         0x0
 # CHECK-NEXT:       - Module:          env
@@ -64,15 +66,21 @@ call_indirect_explicit_tables:
 # CHECK-NEXT:   - Type:            TABLE
 # CHECK-NEXT:     Tables:
 # CHECK-NEXT:       - Index:           1
-# CHECK-NEXT:         ElemType:        FUNCREF
+# CHECK-NEXT:         ElemType:
+# CHECK-NEXT:           Type:            func
+# CHECK-NEXT:           Nullable:        true
 # CHECK-NEXT:         Limits:
 # CHECK-NEXT:           Minimum:         0x0
 # CHECK-NEXT:       - Index:           2
-# CHECK-NEXT:         ElemType:        EXTERNREF
+# CHECK-NEXT:         ElemType:
+# CHECK-NEXT:           Type:            extern
+# CHECK-NEXT:           Nullable:        true
 # CHECK-NEXT:         Limits:
 # CHECK-NEXT:           Minimum:         0x0
 # CHECK-NEXT:       - Index:           3
-# CHECK-NEXT:         ElemType:        FUNCREF
+# CHECK-NEXT:         ElemType:
+# CHECK-NEXT:           Type:            func
+# CHECK-NEXT:           Nullable:        true
 # CHECK-NEXT:         Limits:
 # CHECK-NEXT:           Flags:           [ HAS_MAX ]
 # CHECK-NEXT:           Minimum:         0x3
@@ -112,7 +120,9 @@ call_indirect_explicit_tables:
 # CHECK-NEXT:     Segments:
 # CHECK-NEXT:       - Flags:           2
 # CHECK-NEXT:         TableNumber:     3
-# CHECK-NEXT:         ElemKind:        FUNCREF
+# CHECK-NEXT:         ElemKind:
+# CHECK-NEXT:           Type:            func
+# CHECK-NEXT:           Nullable:        true
 # CHECK-NEXT:         Offset:
 # CHECK-NEXT:           Opcode:          I32_CONST
 # CHECK-NEXT:           Value:           1

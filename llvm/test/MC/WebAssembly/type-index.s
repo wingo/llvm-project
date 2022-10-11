@@ -45,7 +45,9 @@ test0:
 # BIN-NEXT:         Kind:            TABLE
 # BIN-NEXT:         Table:
 # BIN-NEXT:           Index:           0
-# BIN-NEXT:           ElemType:        FUNCREF
+# BIN-NEXT:           ElemType:
+# BIN-NEXT:             Type:            func
+# BIN-NEXT:             Nullable:        true
 # BIN-NEXT:           Limits:
 # BIN-NEXT:             Minimum:         0x0
 # BIN-NEXT:   - Type:            FUNCTION

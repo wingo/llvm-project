@@ -41,4 +41,4 @@ _start:
 # CHECK-NEXT:        Mutable:         true
 # CHECK-NEXT:        InitExpr:
 # CHECK-NEXT:          Opcode:          REF_NULL
-# CHECK-NEXT:          Type:            EXTERNREF
+# CHECK-NEXT:          Type:            extern

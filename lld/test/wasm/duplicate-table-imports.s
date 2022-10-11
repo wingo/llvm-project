@@ -54,7 +54,9 @@ _start:
 # CHECK-NEXT:         Kind:            TABLE
 # CHECK-NEXT:         Table:
 # CHECK-NEXT:           Index:           0
-# CHECK-NEXT:           ElemType:        FUNCREF
+# CHECK-NEXT:           ElemType:
+# CHECK-NEXT:             Type:            func
+# CHECK-NEXT:             Nullable:        true
 # CHECK-NEXT:           Limits:
 # CHECK-NEXT:             Minimum:         0x0
 # CHECK-NEXT:       - Module:          env
@@ -62,7 +64,9 @@ _start:
 # CHECK-NEXT:         Kind:            TABLE
 # CHECK-NEXT:         Table:
 # CHECK-NEXT:           Index:           0
-# CHECK-NEXT:           ElemType:        EXTERNREF
+# CHECK-NEXT:           ElemType:
+# CHECK-NEXT:             Type:            extern
+# CHECK-NEXT:             Nullable:        true
 # CHECK-NEXT:           Limits:
 # CHECK-NEXT:             Minimum:         0x0
 # CHECK-NEXT:   - Type:

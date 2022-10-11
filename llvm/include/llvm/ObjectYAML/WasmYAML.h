@@ -28,7 +28,7 @@ namespace WasmYAML {
 
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SectionType)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, ValueType)
-LLVM_YAML_STRONG_TYPEDEF(uint32_t, TableType)
+LLVM_YAML_STRONG_TYPEDEF(int64_t, HeapType)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SignatureForm)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, ExportKind)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, Opcode)
@@ -50,8 +50,13 @@ struct Limits {
   yaml::Hex32 Maximum;
 };
 
+struct RefType {
+  HeapType Type;
+  bool Nullable;
+};
+
 struct Table {
-  TableType ElemType;
+  RefType ElemType;
   Limits TableLimits;
   uint32_t Index;
 };
@@ -74,7 +79,7 @@ struct InitExpr {
 struct ElemSegment {
   uint32_t Flags;
   uint32_t TableNumber;
-  ValueType ElemKind;
+  RefType ElemKind;
   InitExpr Offset;
   std::vector<uint32_t> Functions;
 };
@@ -576,8 +581,12 @@ template <> struct ScalarEnumerationTraits<WasmYAML::ExportKind> {
   static void enumeration(IO &IO, WasmYAML::ExportKind &Kind);
 };
 
-template <> struct ScalarEnumerationTraits<WasmYAML::TableType> {
-  static void enumeration(IO &IO, WasmYAML::TableType &Type);
+template <> struct ScalarEnumerationTraits<WasmYAML::HeapType> {
+  static void enumeration(IO &IO, WasmYAML::HeapType &Type);
+};
+
+template <> struct MappingTraits<WasmYAML::RefType> {
+  static void mapping(IO &IO, WasmYAML::RefType &Info);
 };
 
 template <> struct ScalarEnumerationTraits<WasmYAML::Opcode> {

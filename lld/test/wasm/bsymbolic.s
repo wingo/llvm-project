@@ -72,7 +72,9 @@
 // SYMBOLIC-NEXT:        Kind:            TABLE
 // SYMBOLIC-NEXT:        Table:
 // SYMBOLIC-NEXT:          Index:           0
-// SYMBOLIC-NEXT:          ElemType:        FUNCREF
+// SYMBOLIC-NEXT:          ElemType:
+// SYMBOLIC-NEXT:            Type:            func
+// SYMBOLIC-NEXT:            Nullable:        true
 // SYMBOLIC-NEXT:          Limits:
 // SYMBOLIC-NEXT:            Minimum:         0x1
 // SYMBOLIC-NEXT:  - Type:            FUNCTION

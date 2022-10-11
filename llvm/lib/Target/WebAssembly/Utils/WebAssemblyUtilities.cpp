@@ -156,7 +156,8 @@ MCSymbolWasm *WebAssembly::getOrCreateFuncrefCallTableSymbol(
     Sym->setWeak(true);
 
     wasm::WasmLimits Limits = {0, 1, 1};
-    wasm::WasmTableType TableType = {wasm::WASM_TYPE_FUNCREF, Limits};
+    wasm::WasmTableType TableType =
+      {wasm::RefType(wasm::HeapType::Func(), true), Limits};
     Sym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
     Sym->setTableType(TableType);
   }

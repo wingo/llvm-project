@@ -761,6 +761,15 @@ public:
     return false;
   }
 
+  Optional<wasm::RefType> parseRefType(StringRef Ident) {
+    // TODO: Parse the (ref extern) grammar.
+    Optional<wasm::ValType> Type = WebAssembly::parseType(Ident);
+    if (!Type) return None;
+    if (Type->isNumeric()) return None;
+    bool Nullable = true;
+    return wasm::RefType(wasm::HeapType(*Type), Nullable);
+  }
+
   bool CheckDataSection() {
     if (CurrentState != DataSection) {
       auto WS = cast<MCSectionWasm>(getStreamer().getCurrentSection().first);
@@ -837,7 +846,7 @@ public:
       auto ElemTypeName = expectIdent();
       if (ElemTypeName.empty())
         return true;
-      Optional<wasm::ValType> ElemType = WebAssembly::parseType(ElemTypeName);
+      Optional<wasm::RefType> ElemType = parseRefType(ElemTypeName);
       if (!ElemType)
         return error("Unknown type in .tabletype directive: ", ElemTypeTok);
 

@@ -6,7 +6,9 @@ Sections:
   - Type:            TABLE
     Tables:         
       - Index:             0
-        ElemType:          FUNCREF
+        ElemType:
+          Type:            func
+          Nullable:        true
         Limits:
           Flags:           [ HAS_MAX ]
           Minimum:         0x00000010
