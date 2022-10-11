@@ -40,6 +40,14 @@ Optional<wasm::ValType> WebAssembly::parseType(StringRef Type) {
     return wasm::ValType(wasm::ValType::FUNCREF);
   if (Type == "externref")
     return wasm::ValType(wasm::ValType::EXTERNREF);
+  if (Type == "stringref")
+    return wasm::ValType(wasm::ValType::STRINGREF);
+  if (Type == "stringview_wtf8")
+    return wasm::ValType(wasm::ValType::STRINGVIEW_WTF8);
+  if (Type == "stringview_wtf16")
+    return wasm::ValType(wasm::ValType::STRINGVIEW_WTF16);
+  if (Type == "stringview_iter")
+    return wasm::ValType(wasm::ValType::STRINGVIEW_ITER);
   return Optional<wasm::ValType>();
 }
 
@@ -53,6 +61,10 @@ WebAssembly::BlockType WebAssembly::parseBlockType(StringRef Type) {
       .Case("v128", WebAssembly::BlockType::V128)
       .Case("funcref", WebAssembly::BlockType::Funcref)
       .Case("externref", WebAssembly::BlockType::Externref)
+      .Case("stringref", WebAssembly::BlockType::Stringref)
+      .Case("stringview_wtf8", WebAssembly::BlockType::StringViewWtf8)
+      .Case("stringview_wtf16", WebAssembly::BlockType::StringViewWtf16)
+      .Case("stringview_iter", WebAssembly::BlockType::StringViewIter)
       .Case("void", WebAssembly::BlockType::Void)
       .Default(WebAssembly::BlockType::Invalid);
 }
@@ -89,6 +101,14 @@ const char *WebAssembly::anyTypeToString(unsigned Type) {
     return "funcref";
   case wasm::WASM_TYPE_EXTERNREF:
     return "externref";
+  case wasm::WASM_TYPE_STRINGREF:
+    return "stringref";
+  case wasm::WASM_TYPE_STRINGVIEW_WTF8:
+    return "stringview_wtf8";
+  case wasm::WASM_TYPE_STRINGVIEW_WTF16:
+    return "stringview_wtf16";
+  case wasm::WASM_TYPE_STRINGVIEW_ITER:
+    return "stringview_iter";
   case wasm::WASM_TYPE_FUNC:
     return "func";
   case wasm::WASM_TYPE_NORESULT:
@@ -246,6 +266,14 @@ wasm::ValType WebAssembly::retrieveValTypeForWasmRef(const Module &M, unsigned A
       return wasm::ValType::EXTERNREF;
     if (TyInfoStr == "funcref")
       return wasm::ValType::FUNCREF;
+    if (TyInfoStr == "stringref")
+      return wasm::ValType::STRINGREF;
+    if (TyInfoStr == "stringview_wtf8")
+      return wasm::ValType::STRINGVIEW_WTF8;
+    if (TyInfoStr == "stringview_wtf16")
+      return wasm::ValType::STRINGVIEW_WTF16;
+    if (TyInfoStr == "stringview_iter")
+      return wasm::ValType::STRINGVIEW_ITER;
   }
 
   report_fatal_error("Unable to determine wasm::ValType for given wasmref. "

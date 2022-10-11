@@ -185,6 +185,10 @@ static wasm::HeapType readHeapType(WasmObjectFile::ReadContext &Ctx) {
     switch (VT.Kind) {
     case wasm::ValType::FUNCREF:
     case wasm::ValType::EXTERNREF:
+    case wasm::ValType::STRINGREF:
+    case wasm::ValType::STRINGVIEW_WTF8:
+    case wasm::ValType::STRINGVIEW_WTF16:
+    case wasm::ValType::STRINGVIEW_ITER:
       return wasm::HeapType(VT);
     default:
       break;

@@ -189,6 +189,10 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
           break
         REPLACE_REF_NULL(EXTERNREF);
         REPLACE_REF_NULL(FUNCREF);
+        REPLACE_REF_NULL(STRINGREF);
+        REPLACE_REF_NULL(STRINGVIEW_WTF8);
+        REPLACE_REF_NULL(STRINGVIEW_WTF16);
+        REPLACE_REF_NULL(STRINGVIEW_ITER);
 #undef REPLACE_REF_NULL
       default:
         report_fatal_error("Unexpected wasm::ValType encountered");

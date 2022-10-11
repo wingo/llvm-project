@@ -124,6 +124,14 @@ getWVTForWasmRefDefMI(MachineFunction &MF,
     return wasm::ValType::EXTERNREF;
   case WebAssembly::REF_NULL_WASMREF_FUNCREF:
     return wasm::ValType::FUNCREF;
+  case WebAssembly::REF_NULL_WASMREF_STRINGREF:
+    return wasm::ValType::STRINGREF;
+  case WebAssembly::REF_NULL_WASMREF_STRINGVIEW_WTF8:
+    return wasm::ValType::STRINGVIEW_WTF8;
+  case WebAssembly::REF_NULL_WASMREF_STRINGVIEW_WTF16:
+    return wasm::ValType::STRINGVIEW_WTF16;
+  case WebAssembly::REF_NULL_WASMREF_STRINGVIEW_ITER:
+    return wasm::ValType::STRINGVIEW_ITER;
   }
 }
 

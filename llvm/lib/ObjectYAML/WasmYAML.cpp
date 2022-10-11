@@ -603,6 +603,10 @@ void ScalarEnumerationTraits<WasmYAML::ValueType>::enumeration(
   ECase(V128);
   ECase(FUNCREF);
   ECase(EXTERNREF);
+  ECase(STRINGREF);
+  ECase(STRINGVIEW_WTF8);
+  ECase(STRINGVIEW_WTF16);
+  ECase(STRINGVIEW_ITER);
   ECase(FUNC);
 #undef ECase
 }
@@ -637,6 +641,10 @@ void ScalarEnumerationTraits<WasmYAML::HeapType>::enumeration(
     IO.enumCase(Type, #x, WasmYAML::HeapType(wasm::ValType(wasm::ValType::X).getValue()))
   ECase(func, FUNCREF);
   ECase(extern, EXTERNREF);
+  ECase(string, STRINGREF);
+  ECase(stringview_wtf8, STRINGVIEW_WTF8);
+  ECase(stringview_wtf16, STRINGVIEW_WTF16);
+  ECase(stringview_iter, STRINGVIEW_ITER);
 #undef ECase
   IO.enumFallback<Hex32>(Type);
 }

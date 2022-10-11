@@ -123,6 +123,14 @@ static char getInvokeSig(wasm::ValType VT) {
     return 'F';
   case wasm::ValType::EXTERNREF:
     return 'X';
+  case wasm::ValType::STRINGREF:
+    return 'S';
+  case wasm::ValType::STRINGVIEW_WTF8:
+    return 'x';
+  case wasm::ValType::STRINGVIEW_WTF16:
+    return 'y';
+  case wasm::ValType::STRINGVIEW_ITER:
+    return 'z';
   case wasm::ValType::IDX:
     report_fatal_error("Don't know how to handle wasm::ValType::IDX");
   }

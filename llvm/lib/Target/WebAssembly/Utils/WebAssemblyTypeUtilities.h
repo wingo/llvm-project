@@ -40,6 +40,10 @@ enum class BlockType : unsigned {
   V128 = unsigned(wasm::ValType::V128),
   Externref = unsigned(wasm::ValType::EXTERNREF),
   Funcref = unsigned(wasm::ValType::FUNCREF),
+  Stringref = unsigned(wasm::ValType::STRINGREF),
+  StringViewWtf8 = unsigned(wasm::ValType::STRINGVIEW_WTF8),
+  StringViewWtf16 = unsigned(wasm::ValType::STRINGVIEW_WTF16),
+  StringViewIter = unsigned(wasm::ValType::STRINGVIEW_ITER),
   // Multivalue blocks (and other non-void blocks) are only emitted when the
   // blocks will never be exited and are at the ends of functions (see
   // WebAssemblyCFGStackify::fixEndsAtEndOfFunction). They also are never made

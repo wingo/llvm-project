@@ -34,6 +34,14 @@ std::string toString(ValType type) {
     return "funcref";
   case ValType::EXTERNREF:
     return "externref";
+  case ValType::STRINGREF:
+    return "stringref";
+  case ValType::STRINGVIEW_WTF8:
+    return "stringview_wtf8";
+  case ValType::STRINGVIEW_WTF16:
+    return "stringview_wtf16";
+  case ValType::STRINGVIEW_ITER:
+    return "stringview_iter";
   case ValType::IDX:
     report_fatal_error("Don't know how to handle wasm::ValtType::IDX");
   }
