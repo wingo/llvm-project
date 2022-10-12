@@ -70,6 +70,10 @@ def HasExtendedConst :
     Predicate<"Subtarget->hasExtendedConst()">,
     AssemblerPredicate<(all_of FeatureExtendedConst), "extended-const">;
 
+def HasStringRef :
+    Predicate<"Subtarget->hasStringRef()">,
+    AssemblerPredicate<(all_of FeatureStringRef), "stringref">;
+
 //===----------------------------------------------------------------------===//
 // WebAssembly-specific DAG Node Types.
 //===----------------------------------------------------------------------===//
@@ -184,6 +188,9 @@ def function32_op : Operand<i32>;
 
 let OperandType = "OPERAND_TABLE" in
 def table32_op : Operand<i32>;
+
+let OperandType = "OPERAND_MEMORY" in
+def memory_op : Operand<i32>;
 
 let OperandType = "OPERAND_OFFSET32" in
 def offset32_op : Operand<i32>;
@@ -434,3 +441,4 @@ include "WebAssemblyInstrSIMD.td"
 include "WebAssemblyInstrRef.td"
 include "WebAssemblyInstrBulkMemory.td"
 include "WebAssemblyInstrTable.td"
+include "WebAssemblyInstrString.td"

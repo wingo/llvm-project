@@ -34,6 +34,26 @@ def int_wasm_ref_is_null : Intrinsic<[llvm_i32_ty], [llvm_wasmref_ty],
                                             [IntrNoMem], "llvm.wasm.ref.is_null">;
 
 //===----------------------------------------------------------------------===//
+// stringref intrinsics
+//===----------------------------------------------------------------------===//
+def int_wasm_string_new_utf8 : Intrinsic<[llvm_wasmref_ty],
+                                         [llvm_i32_ty, llvm_i32_ty],
+                                         [IntrReadMem, IntrHasSideEffects],
+                                         "llvm.wasm.string.new_utf8">;
+def int_wasm_string_new_lossy_utf8 : Intrinsic<[llvm_wasmref_ty],
+                                               [llvm_i32_ty, llvm_i32_ty],
+                                               [IntrReadMem, IntrHasSideEffects],
+                                               "llvm.wasm.string.new_lossy_utf8">;
+def int_wasm_string_new_wtf8 : Intrinsic<[llvm_wasmref_ty],
+                                         [llvm_i32_ty, llvm_i32_ty],
+                                         [IntrReadMem, IntrHasSideEffects],
+                                         "llvm.wasm.string.new_wtf8">;
+def int_wasm_string_new_wtf16 : Intrinsic<[llvm_wasmref_ty],
+                                          [llvm_i32_ty, llvm_i32_ty],
+                                          [IntrReadMem, IntrHasSideEffects],
+                                          "llvm.wasm.string.new_wtf16">;
+
+//===----------------------------------------------------------------------===//
 // Table intrinsics
 //===----------------------------------------------------------------------===//
 // Query the current table size, and increase the current table size.

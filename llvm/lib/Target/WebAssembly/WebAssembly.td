@@ -71,6 +71,10 @@ def FeatureExtendedConst :
       SubtargetFeature<"extended-const", "HasExtendedConst", "true",
                        "Enable extended const expressions">;
 
+def FeatureStringRef :
+      SubtargetFeature<"stringref", "HasStringRef", "true",
+                       "Enable stringref data type and operations">;
+
 //===----------------------------------------------------------------------===//
 // Architectures.
 //===----------------------------------------------------------------------===//

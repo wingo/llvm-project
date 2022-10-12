@@ -147,6 +147,7 @@ void WebAssemblyMCCodeEmitter::encodeInstruction(
         break;
       case WebAssembly::OPERAND_FUNCTION32:
       case WebAssembly::OPERAND_TABLE:
+      case WebAssembly::OPERAND_MEMORY:
       case WebAssembly::OPERAND_OFFSET32:
       case WebAssembly::OPERAND_SIGNATURE:
       case WebAssembly::OPERAND_TYPEINDEX:

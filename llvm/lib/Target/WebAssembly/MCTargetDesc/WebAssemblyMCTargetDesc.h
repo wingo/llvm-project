@@ -77,6 +77,8 @@ enum OperandType {
   OPERAND_BRLIST,
   /// 32-bit unsigned table number.
   OPERAND_TABLE,
+  /// 32-bit unsigned memory number.
+  OPERAND_MEMORY,
 };
 } // end namespace WebAssembly
 
