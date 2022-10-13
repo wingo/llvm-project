@@ -126,3 +126,37 @@ string_encode_wtf16:
 # CHECK:             20 01	local.get	1
 # CHECK-NEXT:        fb 87 01 00  	string.encode_wtf16
 # CHECK-NEXT:        0b         end
+
+string_concat:
+  .functype string_concat (stringref, stringref) -> (stringref)
+  local.get 0
+  local.get 1
+  string.concat
+  end_function
+# CHECK: <string_concat>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 88 01  	string.concat
+# CHECK-NEXT:        0b         end
+
+string_eq:
+  .functype string_eq (stringref, stringref) -> (i32)
+  local.get 0
+  local.get 1
+  string.eq
+  end_function
+# CHECK: <string_eq>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 89 01  	string.eq
+# CHECK-NEXT:        0b         end
+
+string_is_usv_sequence:
+  .functype string_is_usv_sequence (stringref) -> (i32)
+  local.get 0
+  string.is_usv_sequence
+  end_function
+# CHECK: <string_is_usv_sequence>:
+# CHECK:             20 00	local.get	0
+# CHECK-NEXT:        fb 8a 01  	string.is_usv_sequence
+# CHECK-NEXT:        0b         end

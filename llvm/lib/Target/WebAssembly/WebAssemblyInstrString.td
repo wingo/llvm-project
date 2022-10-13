@@ -55,3 +55,21 @@ defm STRING_ENCODE_UTF8 : StringEncodeOp<"utf8", 0xfb86>;
 defm STRING_ENCODE_LOSSY_UTF8 : StringEncodeOp<"lossy_utf8", 0xfb8d>;
 defm STRING_ENCODE_WTF8 : StringEncodeOp<"wtf8", 0xfb8e>;
 defm STRING_ENCODE_WTF16 : StringEncodeOp<"wtf16", 0xfb87>;
+
+defm STRING_CONCAT : I<(outs WASMREF:$dst), (ins WASMREF:$a, WASMREF:$b),
+                       (outs), (ins),
+                        [(set WASMREF:$dst,
+                              (int_wasm_string_concat WASMREF:$a, WASMREF:$b))],
+                       "string.concat\t$a $b", "string.concat", 0xfb88>,
+                     Requires<[HasStringRef, HasReferenceTypes]>;
+defm STRING_EQ : I<(outs I32:$dst), (ins WASMREF:$a, WASMREF:$b),
+                   (outs), (ins),
+                   [(set I32:$dst,
+                         (int_wasm_string_eq WASMREF:$a, WASMREF:$b))],
+                   "string.eq\t$a $b", "string.eq", 0xfb89>,
+                 Requires<[HasStringRef, HasReferenceTypes]>;
+defm STRING_IS_USV_SEQUENCE :
+   I<(outs I32:$dst), (ins WASMREF:$str), (outs), (ins),
+     [(set I32:$dst, (int_wasm_string_is_usv_sequence WASMREF:$str))],
+     "string.is_usv_sequence\t$str", "string.is_usv_sequence", 0xfb8a>,
+   Requires<[HasStringRef, HasReferenceTypes]>;

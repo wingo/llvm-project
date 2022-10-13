@@ -77,6 +77,17 @@ def int_wasm_string_encode_wtf16 : Intrinsic<[llvm_i32_ty],
                                              [llvm_wasmref_ty, llvm_i32_ty],
                                              [IntrWriteMem, IntrHasSideEffects],
                                              "llvm.wasm.string.encode_wtf16">;
+def int_wasm_string_concat : Intrinsic<[llvm_wasmref_ty],
+                                       [llvm_wasmref_ty, llvm_wasmref_ty],
+                                       [IntrNoMem],
+                                       "llvm.wasm.string.concat">;
+def int_wasm_string_eq : Intrinsic<[llvm_i32_ty],
+                                   [llvm_wasmref_ty, llvm_wasmref_ty],
+                                   [IntrNoMem],
+                                   "llvm.wasm.string.eq">;
+def int_wasm_string_is_usv_sequence : Intrinsic<[llvm_i32_ty], [llvm_wasmref_ty],
+                                                [IntrNoMem],
+                                                "llvm.wasm.string.is_usv_sequence">;
 
 //===----------------------------------------------------------------------===//
 // Table intrinsics
