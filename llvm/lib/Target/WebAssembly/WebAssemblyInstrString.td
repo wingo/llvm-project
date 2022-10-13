@@ -26,3 +26,16 @@ defm STRING_NEW_UTF8 : StringNewOp<"utf8", 0xfb8b>;
 defm STRING_NEW_LOSSY_UTF8 : StringNewOp<"lossy_utf8", 0xfb8c>;
 defm STRING_NEW_WTF8 : StringNewOp<"wtf8", 0xfb80>;
 defm STRING_NEW_WTF16 : StringNewOp<"wtf16", 0xfb81>;
+
+multiclass StringMeasureOp<string stem, bits<32> opcode> {
+  defvar Int = !cast<Intrinsic>("int_wasm_string_measure_"#stem);
+  defm NAME : I<(outs I32:$dst), (ins WASMREF:$str), (outs), (ins),
+                [(set I32:$dst, (Int WASMREF:$str))],
+                "string.measure_"#stem#"\t$str", "string.measure_"#stem,
+                opcode>,
+              Requires<[HasStringRef, HasReferenceTypes]>;
+}
+
+defm STRING_MEASURE_UTF8 : StringMeasureOp<"utf8", 0xfb83>;
+defm STRING_MEASURE_WTF8 : StringMeasureOp<"wtf8", 0xfb84>;
+defm STRING_MEASURE_WTF16 : StringMeasureOp<"wtf16", 0xfb85>;
