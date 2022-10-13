@@ -39,3 +39,19 @@ multiclass StringMeasureOp<string stem, bits<32> opcode> {
 defm STRING_MEASURE_UTF8 : StringMeasureOp<"utf8", 0xfb83>;
 defm STRING_MEASURE_WTF8 : StringMeasureOp<"wtf8", 0xfb84>;
 defm STRING_MEASURE_WTF16 : StringMeasureOp<"wtf16", 0xfb85>;
+
+multiclass StringEncodeOp<string stem, bits<32> opcode> {
+  defm NAME : I<(outs I32:$dst), (ins memory_op:$mem, WASMREF:$str, I32:$addr),
+          (outs), (ins memory_op:$mem), [],
+          "string.encode_"#stem#"\t$str $addr",
+          "string.encode_"#stem, opcode>,
+        Requires<[HasStringRef, HasReferenceTypes]>;
+  defvar Int = !cast<Intrinsic>("int_wasm_string_encode_"#stem);
+  defvar Inst = !cast<NI>(NAME);
+  def : Pat<(Int WASMREF:$str, I32:$addr), (Inst 0, WASMREF:$str, I32:$addr)>;
+}
+
+defm STRING_ENCODE_UTF8 : StringEncodeOp<"utf8", 0xfb86>;
+defm STRING_ENCODE_LOSSY_UTF8 : StringEncodeOp<"lossy_utf8", 0xfb8d>;
+defm STRING_ENCODE_WTF8 : StringEncodeOp<"wtf8", 0xfb8e>;
+defm STRING_ENCODE_WTF16 : StringEncodeOp<"wtf16", 0xfb87>;

@@ -61,6 +61,22 @@ def int_wasm_string_measure_wtf8 : Intrinsic<[llvm_i32_ty], [llvm_wasmref_ty],
 def int_wasm_string_measure_wtf16 : Intrinsic<[llvm_i32_ty], [llvm_wasmref_ty],
                                               [IntrNoMem],
                                               "llvm.wasm.string.measure_wtf16">;
+def int_wasm_string_encode_utf8 : Intrinsic<[llvm_i32_ty],
+                                            [llvm_wasmref_ty, llvm_i32_ty],
+                                            [IntrWriteMem, IntrHasSideEffects],
+                                            "llvm.wasm.string.encode_utf8">;
+def int_wasm_string_encode_lossy_utf8 : Intrinsic<[llvm_i32_ty],
+                                                  [llvm_wasmref_ty, llvm_i32_ty],
+                                                  [IntrWriteMem, IntrHasSideEffects],
+                                                  "llvm.wasm.string.encode_lossy_utf8">;
+def int_wasm_string_encode_wtf8 : Intrinsic<[llvm_i32_ty],
+                                            [llvm_wasmref_ty, llvm_i32_ty],
+                                            [IntrWriteMem, IntrHasSideEffects],
+                                            "llvm.wasm.string.encode_wtf8">;
+def int_wasm_string_encode_wtf16 : Intrinsic<[llvm_i32_ty],
+                                             [llvm_wasmref_ty, llvm_i32_ty],
+                                             [IntrWriteMem, IntrHasSideEffects],
+                                             "llvm.wasm.string.encode_wtf16">;
 
 //===----------------------------------------------------------------------===//
 // Table intrinsics

@@ -78,3 +78,51 @@ string_measure_wtf16:
 # CHECK:             20 00	local.get	0
 # CHECK-NEXT:        fb 85 01  	string.measure_wtf16
 # CHECK-NEXT:        0b           	end
+
+string_encode_utf8:
+  .functype string_encode_utf8 (stringref, i32) -> (i32)
+  local.get 0
+  local.get 1
+  string.encode_utf8
+  end_function
+# CHECK: <string_encode_utf8>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 86 01 00  	string.encode_utf8
+# CHECK-NEXT:        0b         end
+
+string_encode_lossy_utf8:
+  .functype string_encode_lossy_utf8 (stringref, i32) -> (i32)
+  local.get 0
+  local.get 1
+  string.encode_lossy_utf8
+  end_function
+# CHECK: <string_encode_lossy_utf8>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 8d 01 00  	string.encode_lossy_utf8
+# CHECK-NEXT:        0b         end
+
+string_encode_wtf8:
+  .functype string_encode_wtf8 (stringref, i32) -> (i32)
+  local.get 0
+  local.get 1
+  string.encode_wtf8
+  end_function
+# CHECK: <string_encode_wtf8>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 8e 01 00  	string.encode_wtf8
+# CHECK-NEXT:        0b         end
+
+string_encode_wtf16:
+  .functype string_encode_wtf16 (stringref, i32) -> (i32)
+  local.get 0
+  local.get 1
+  string.encode_wtf16
+  end_function
+# CHECK: <string_encode_wtf16>:
+# CHECK:             20 00	local.get	0
+# CHECK:             20 01	local.get	1
+# CHECK-NEXT:        fb 87 01 00  	string.encode_wtf16
+# CHECK-NEXT:        0b         end
